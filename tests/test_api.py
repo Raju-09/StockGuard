@@ -75,3 +75,49 @@ def test_predict_endpoint_validation_error():
     }
     res = client.post("/predict", json=payload)
     assert res.status_code == 422
+
+
+def test_cold_start_endpoint():
+    payload = {
+        "product_name": "Organic Almond Milk 1L",
+        "category": "Dairy",
+        "brand": "AlmondBreeze",
+        "price": 85.0,
+        "pack_size": 1,
+        "unit": "Litre",
+        "is_perishable": 1,
+        "supplier_lead_time": 2,
+        "moq": 24,
+        "case_pack_size": 6,
+    }
+    res = client.post("/cold-start", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["product_name"] == "Organic Almond Milk 1L"
+    assert data["status"] == "READY"
+    assert "top_analogs" in data
+    assert data["p50"] > 0
+    assert data["recommended_pilot_order"] >= 24
+    assert data["recommended_pilot_order"] % 6 == 0
+
+
+def test_what_if_endpoint():
+    payload = {
+        "product": "Milk",
+        "current_inventory": 30,
+        "price": 55.0,
+        "promo": 0,
+        "lead_time_days": 2,
+        "inventory_delta": -20,
+        "lead_time_delta": 3,
+        "promo_override": 1,
+    }
+    res = client.post("/simulate-what-if", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert "baseline" in data
+    assert "scenario" in data
+    assert "deltas" in data
+    assert data["scenario"]["inventory"] == 10
+    assert data["scenario"]["lead_time"] == 5
+    assert data["scenario"]["stockout_risk"] >= data["baseline"]["stockout_risk"]

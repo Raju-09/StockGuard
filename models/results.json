@@ -82,7 +82,7 @@
     "mae_uncensored": 2.9328896848942776,
     "rmse_uncensored": 4.0070283684027235,
     "wape_uncensored": 0.26831830538694346,
-    "bias_uncensored": 0.016851185543081883
+    "bias_uncensored": 0.0168511855430817
   },
   "gradient_boost": {
     "n_all": 240,

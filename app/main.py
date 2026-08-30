@@ -84,6 +84,32 @@ class PredictPayload(BaseModel):
         description="Model to use (censoring_aware, gradient_boost, random_forest, linear, naive, ma7)",
         json_schema_extra={"example": "censoring_aware"},
     )
+    currency: str = Field("INR", description="Currency symbol/code: INR, USD, EUR", json_schema_extra={"example": "INR"})
+
+
+class ColdStartPayload(BaseModel):
+    product_name: str = Field(..., description="New product name", json_schema_extra={"example": "Organic Whole Milk 1L"})
+    category: str = Field(..., description="Category (Dairy, Bakery, Snacks, Grains, etc.)", json_schema_extra={"example": "Dairy"})
+    brand: str = Field("StoreBrand", description="Brand name", json_schema_extra={"example": "PureFarm"})
+    price: float = Field(..., gt=0.0, description="Planned retail price", json_schema_extra={"example": 60.0})
+    pack_size: int = Field(1, ge=1, description="Pack size", json_schema_extra={"example": 1})
+    unit: str = Field("Litre", description="Unit of measure", json_schema_extra={"example": "Litre"})
+    is_perishable: int = Field(1, ge=0, le=1, description="1 if perishable, 0 otherwise", json_schema_extra={"example": 1})
+    supplier_lead_time: int = Field(2, ge=1, description="Expected supplier lead time in days", json_schema_extra={"example": 2})
+    moq: int = Field(20, ge=1, description="Supplier Minimum Order Quantity", json_schema_extra={"example": 20})
+    case_pack_size: int = Field(6, ge=1, description="Units per case pack", json_schema_extra={"example": 6})
+
+
+class WhatIfPayload(BaseModel):
+    product: str = Field(..., description="Product SKU name", json_schema_extra={"example": "Milk"})
+    current_inventory: int = Field(..., ge=0, json_schema_extra={"example": 24})
+    price: float = Field(..., gt=0.0, json_schema_extra={"example": 55.0})
+    promo: int = Field(0, ge=0, le=1, json_schema_extra={"example": 0})
+    lead_time_days: int = Field(2, ge=1, json_schema_extra={"example": 2})
+    # Scenario shocks
+    inventory_delta: int = Field(0, description="Add or remove stock (e.g. -15)", json_schema_extra={"example": -10})
+    lead_time_delta: int = Field(0, description="Supplier delay in days (e.g. +2)", json_schema_extra={"example": 2})
+    promo_override: int | None = Field(None, description="Force promotion ON (1) or OFF (0)", json_schema_extra={"example": 1})
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -237,4 +263,116 @@ def get_drift_telemetry() -> dict[str, Any]:
         raise HTTPException(
             status_code=500, detail=f"Failed to compute drift telemetry: {exc}"
         ) from exc
+
+
+@app.post("/cold-start")
+def cold_start_endpoint(payload: ColdStartPayload) -> dict[str, Any]:
+    """Generate cold-start launch demand and pilot replenishment for a new SKU."""
+    try:
+        from src.cold_start import NewProductRequest, run_cold_start_forecast
+        req = NewProductRequest(
+            product_name=payload.product_name,
+            category=payload.category,
+            brand=payload.brand,
+            price=payload.price,
+            pack_size=payload.pack_size,
+            unit=payload.unit,
+            is_perishable=payload.is_perishable,
+            supplier_lead_time=payload.supplier_lead_time,
+            moq=payload.moq,
+            case_pack_size=payload.case_pack_size,
+        )
+        res = run_cold_start_forecast(req)
+        return {
+            "product_name": res.product_name,
+            "status": res.status,
+            "confidence_level": res.confidence_level,
+            "max_similarity": res.max_similarity,
+            "top_analogs": res.top_analogs,
+            "expected_daily_demand": res.expected_daily_demand,
+            "p10": res.p10,
+            "p50": res.p50,
+            "p80": res.p80,
+            "p90": res.p90,
+            "p95": res.p95,
+            "recommended_pilot_order": res.recommended_pilot_order,
+            "moq_applied": res.moq_applied,
+            "pack_rounding_applied": res.pack_rounding_applied,
+            "explanation": res.explanation,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Cold start inference error: {exc}") from exc
+
+
+@app.post("/simulate-what-if")
+def simulate_what_if(payload: WhatIfPayload) -> dict[str, Any]:
+    """Simulate 'what-if' shocks (supplier delays, inventory shocks, promo overrides)."""
+    try:
+        # 1. Baseline
+        base_req = PredictionRequest(
+            product=payload.product,
+            current_inventory=payload.current_inventory,
+            price=payload.price,
+            promo=payload.promo,
+            lead_time_days=payload.lead_time_days,
+        )
+        base_res = run_predict(base_req, models_dir=MODELS_DIR)
+
+        # 2. Scenario
+        shocked_inventory = max(0, payload.current_inventory + payload.inventory_delta)
+        shocked_lead_time = max(1, payload.lead_time_days + payload.lead_time_delta)
+        shocked_promo = payload.promo if payload.promo_override is None else payload.promo_override
+
+        shocked_req = PredictionRequest(
+            product=payload.product,
+            current_inventory=shocked_inventory,
+            price=payload.price,
+            promo=shocked_promo,
+            lead_time_days=shocked_lead_time,
+        )
+        shocked_res = run_predict(shocked_req, models_dir=MODELS_DIR)
+
+        risk_diff = round(shocked_res.stockout_risk - base_res.stockout_risk, 4)
+        order_diff = shocked_res.recommended_order - base_res.recommended_order
+
+        return {
+            "product": payload.product,
+            "baseline": {
+                "inventory": payload.current_inventory,
+                "lead_time": payload.lead_time_days,
+                "promo": payload.promo,
+                "forecast_demand": base_res.forecast_demand,
+                "stockout_risk": base_res.stockout_risk,
+                "stockout_risk_label": base_res.stockout_risk_label,
+                "recommended_order": base_res.recommended_order,
+                "days_until_stockout": base_res.days_until_stockout,
+            },
+            "scenario": {
+                "inventory": shocked_inventory,
+                "lead_time": shocked_lead_time,
+                "promo": shocked_promo,
+                "forecast_demand": shocked_res.forecast_demand,
+                "stockout_risk": shocked_res.stockout_risk,
+                "stockout_risk_label": shocked_res.stockout_risk_label,
+                "recommended_order": shocked_res.recommended_order,
+                "days_until_stockout": shocked_res.days_until_stockout,
+            },
+            "deltas": {
+                "stockout_risk_delta": risk_diff,
+                "order_delta": order_diff,
+                "impact_summary": (
+                    f"Scenario impact: Stockout risk shifts by {risk_diff*100:+.1f}%. "
+                    f"Recommended order changes by {order_diff:+d} units."
+                ),
+            },
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"What-if simulation error: {exc}") from exc
+
+
+@app.get("/catalog-metadata")
+def get_catalog_metadata() -> dict[str, Any]:
+    """Return reference metadata for catalog SKUs."""
+    from src.cold_start import CATALOG_METADATA
+    return {"catalog": CATALOG_METADATA}
 

@@ -85,7 +85,7 @@ def main() -> None:
     print(f"  Observed : {df_observed.shape}")
     print(f"  Truth    : {df_truth.shape}")
     print(f"  Products : {sorted(df_observed['product'].unique())}")
-    print(f"  Date range: {df_observed['date'].min().date()} → {df_observed['date'].max().date()}")
+    print(f"  Date range: {df_observed['date'].min().date()} -> {df_observed['date'].max().date()}")
 
     # Summary stats
     stats = summary_stats(df_truth)
@@ -108,20 +108,20 @@ def main() -> None:
     # ── 3. Temporal split ─────────────────────────────────────────────────────
     _section("Temporal split (70/10/20)")
     train, val, test = temporal_split(df_featured, train_frac=0.70, val_frac=0.10)
-    print(f"  Train : {len(train)} rows | dates {train['date'].min().date()} → {train['date'].max().date()}")
-    print(f"  Val   : {len(val)} rows | dates {val['date'].min().date()} → {val['date'].max().date()}")
-    print(f"  Test  : {len(test)} rows | dates {test['date'].min().date()} → {test['date'].max().date()}")
+    print(f"  Train : {len(train)} rows | dates {train['date'].min().date()} -> {train['date'].max().date()}")
+    print(f"  Val   : {len(val)} rows | dates {val['date'].min().date()} -> {val['date'].max().date()}")
+    print(f"  Test  : {len(test)} rows | dates {test['date'].min().date()} -> {test['date'].max().date()}")
 
     # Verify no date leakage between splits
     assert not (set(train["date"]) & set(val["date"])), "LEAKAGE: train/val date overlap!"
     assert not (set(train["date"]) & set(test["date"])), "LEAKAGE: train/test date overlap!"
     assert not (set(val["date"]) & set(test["date"])), "LEAKAGE: val/test date overlap!"
-    print("  ✓ No date overlap between splits.")
+    print("  [OK] No date overlap between splits.")
 
     # Verify temporal ordering
     assert train["date"].max() < val["date"].min(), "LEAKAGE: train extends past val start!"
     assert val["date"].max() < test["date"].min(), "LEAKAGE: val extends past test start!"
-    print("  ✓ Temporal ordering verified.")
+    print("  [OK] Temporal ordering verified.")
 
     # ── 4. Train demand models ────────────────────────────────────────────────
     _section("Training demand forecasting models")
@@ -172,7 +172,7 @@ def main() -> None:
             metrics={k: round(v, 4) if isinstance(v, float) else v
                      for k, v in report.items()},
         )
-        print(f"    Saved → {path.name}")
+        print(f"    Saved -> {path.name}")
         trained_models[name] = model
 
     # ── 5. Model comparison table ─────────────────────────────────────────────
@@ -210,7 +210,7 @@ def main() -> None:
         print(f"  PR-AUC   : {clf_metrics['pr_auc']:.3f}")
 
     save_model(clf, "stockout_classifier", metrics=clf_metrics)
-    print("  Saved → stockout_classifier_v1.joblib")
+    print("  Saved -> stockout_classifier_v1.joblib")
 
     # ── 7. Business simulator ─────────────────────────────────────────────────
     _section("Running business simulator (test set)")
@@ -261,13 +261,13 @@ def main() -> None:
              for k, v in all_reports.items()},
             f, indent=2,
         )
-    print(f"  Evaluation results → {RESULTS_PATH.name}")
+    print(f"  Evaluation results -> {RESULTS_PATH.name}")
 
     # Simulation results
     sim_records = sim_comparison.to_dict(orient="records")
     with open(SIM_RESULTS_PATH, "w", encoding="utf-8") as f:
         json.dump(sim_records, f, indent=2, default=str)
-    print(f"  Simulation results → {SIM_RESULTS_PATH.name}")
+    print(f"  Simulation results -> {SIM_RESULTS_PATH.name}")
 
     _banner("Training complete. All models saved to models/")
 

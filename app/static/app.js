@@ -17,6 +17,17 @@ let toastTimer = null;
 // ─── Cached product list for metadata display ─────────────────────────────────
 let productCache = [];
 
+// ─── Cached simulation results for instant currency re-rendering ───────────────
+let simResultsCache = [];
+
+// ─── Active Currency configuration (default: INR) ────────────────────────────
+let currentCurrency = 'INR';
+const CURRENCY_CONFIG = {
+  INR: { symbol: '₹', rate: 1.0, locale: 'en-IN' },
+  USD: { symbol: '$', rate: 1 / 83.0, locale: 'en-US' },
+  EUR: { symbol: '€', rate: 1 / 90.0, locale: 'de-DE' },
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -76,10 +87,11 @@ async function loadSimulationResults() {
     const res = await fetch(`${BASE_URL}/simulation-results`);
     if (!res.ok) throw new Error(`Server error ${res.status}`);
     const data = await res.json();
-    updateSimTable(data.results || []);
+    simResultsCache = data.results || [];
+    updateSimTable(simResultsCache);
   } catch (err) {
     console.error('Failed to load simulation results:', err);
-    // Render empty state — non-fatal
+    simResultsCache = [];
     updateSimTable([]);
   }
 }
@@ -489,12 +501,134 @@ function formatPercent(value) {
 
 function formatCurrency(value) {
   if (value == null) return '—';
-  return new Intl.NumberFormat('en-US', {
+  const cfg = CURRENCY_CONFIG[currentCurrency] || CURRENCY_CONFIG.INR;
+  const converted = value * cfg.rate;
+  return new Intl.NumberFormat(cfg.locale, {
     style: 'currency',
-    currency: 'USD',
+    currency: currentCurrency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(converted);
+}
+
+function changeCurrency(newCurr) {
+  currentCurrency = newCurr;
+  const csSym = document.getElementById('cs-curr-sym');
+  if (csSym && CURRENCY_CONFIG[newCurr]) {
+    csSym.textContent = CURRENCY_CONFIG[newCurr].symbol;
+  }
+  if (simResultsCache.length > 0) {
+    updateSimTable(simResultsCache);
+  }
+  submit();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WHAT-IF SCENARIO SIMULATOR
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function runWhatIf() {
+  const leadDelta = parseInt(document.getElementById('whatif-lead-delta').value, 10);
+  const invDelta = parseInt(document.getElementById('whatif-inv-delta').value, 10);
+  document.getElementById('whatif-lead-val').textContent = (leadDelta >= 0 ? '+' : '') + leadDelta + 'd';
+  document.getElementById('whatif-inv-val').textContent = (invDelta >= 0 ? '+' : '') + invDelta + 'u';
+
+  const product = document.getElementById('product').value;
+  const currentInv = parseInt(document.getElementById('inventory').value, 10) || 20;
+  const price = parseFloat(document.getElementById('price').value) || 55.0;
+  const promo = document.getElementById('promo').checked ? 1 : 0;
+
+  try {
+    const res = await fetch(`${BASE_URL}/simulate-what-if`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        product,
+        current_inventory: currentInv,
+        price,
+        promo,
+        inventory_delta: invDelta,
+        lead_time_delta: leadDelta,
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const baseRisk = (data.baseline.stockout_risk * 100).toFixed(1);
+      const scenRisk = (data.scenario.stockout_risk * 100).toFixed(1);
+      const orderDelta = data.deltas.order_delta;
+
+      document.getElementById('whatif-summary').innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+          <span><strong>Baseline:</strong> Risk ${baseRisk}% | Order ${data.baseline.recommended_order} units</span>
+          <span style="color:#ffffff;"><strong>Scenario:</strong> Risk ${scenRisk}% | Order ${data.scenario.recommended_order} units</span>
+        </div>
+        <div style="color:${orderDelta > 0 ? '#f39c12' : '#27ae60'}; font-weight:600;">
+          ${data.deltas.impact_summary}
+        </div>
+      `;
+    }
+  } catch (err) {
+    console.error('What-if error:', err);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COLD-START MODAL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function openColdStartModal() {
+  const modal = document.getElementById('cold-start-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeColdStartModal() {
+  const modal = document.getElementById('cold-start-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function submitColdStart() {
+  const name = document.getElementById('cs-name').value;
+  const category = document.getElementById('cs-category').value;
+  const price = parseFloat(document.getElementById('cs-price').value) || 50;
+  const lead = parseInt(document.getElementById('cs-lead').value, 10) || 2;
+  const moq = parseInt(document.getElementById('cs-moq').value, 10) || 20;
+  const pack = parseInt(document.getElementById('cs-pack').value, 10) || 6;
+
+  try {
+    const res = await fetch(`${BASE_URL}/cold-start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        product_name: name,
+        category,
+        brand: 'StoreBrand',
+        price,
+        pack_size: 1,
+        supplier_lead_time: lead,
+        moq,
+        case_pack_size: pack,
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    document.getElementById('cs-results').style.display = 'block';
+    document.getElementById('cs-res-status').textContent = `Status: ${data.status}`;
+    const confEl = document.getElementById('cs-res-conf');
+    confEl.textContent = `${data.confidence_level} CONFIDENCE`;
+    confEl.style.background = data.confidence_level === 'HIGH' ? 'rgba(39,174,96,0.2)' : (data.confidence_level === 'MEDIUM' ? 'rgba(243,156,18,0.2)' : 'rgba(231,76,60,0.2)');
+    confEl.style.color = data.confidence_level === 'HIGH' ? '#27ae60' : (data.confidence_level === 'MEDIUM' ? '#f39c12' : '#e74c3c');
+
+    document.getElementById('cs-res-expl').textContent = data.explanation;
+    document.getElementById('cs-p10').textContent = data.p10;
+    document.getElementById('cs-p50').textContent = data.p50;
+    document.getElementById('cs-p80').textContent = data.p80;
+    document.getElementById('cs-p90').textContent = data.p90;
+    document.getElementById('cs-p95').textContent = data.p95;
+    document.getElementById('cs-pilot-order').textContent = `${data.recommended_pilot_order} units`;
+  } catch (err) {
+    showToast(`Cold start error: ${err.message}`);
+  }
 }
 
 function escapeHtml(str) {

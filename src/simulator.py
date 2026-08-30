@@ -39,11 +39,13 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-# ── Cost parameters (configurable) ────────────────────────────────────────────
-
-HOLDING_COST_PER_UNIT_PER_DAY: float = 0.5    # cost of holding 1 unit for 1 day
-ORDERING_COST_PER_ORDER: float = 50.0          # fixed cost per order placed
-LOST_SALES_COST_PER_UNIT: float = 10.0         # cost per unit of unmet demand
+# ── Cost parameters (calibrated to realistic retail economics) ─────────────────
+# Holding cost: 25% annual cost of capital / storage / shrinkage (~₹0.05/unit/day on ₹70 average SKU)
+HOLDING_COST_PER_UNIT_PER_DAY: float = 0.05
+# Fixed PO transaction & delivery receiving cost
+ORDERING_COST_PER_ORDER: float = 30.0
+# Lost gross profit margin penalty per unit of unmet customer demand (~40% of unit price)
+LOST_SALES_COST_PER_UNIT: float = 25.0
 
 
 # ── Result dataclass ───────────────────────────────────────────────────────────
@@ -163,21 +165,18 @@ def simulate_product(
         pipeline = sum(inbound.values())
         current_position = closing_stock + pipeline
 
-        if policy_name == "A_no_forecast":
-            # Policy A: static (s, Q) policy with no forecast adjustment
-            should_order = current_position <= reorder_point
-            order_size = order_qty
-        else:
-            # Policy B, C, D: Dynamic forecast-driven replenishment
-            # Reorder point = lead time demand + 2 days safety stock
-            d_hat = max(float(demand_forecast[day_idx]), 0.5)
-            lead_time_demand = d_hat * lead_time_days
-            safety_stock = d_hat * 2.0
-            dynamic_rop = lead_time_demand + safety_stock
-            target_stock = dynamic_rop + (d_hat * 4.0)  # order up to 4 days beyond ROP
+        # Standardized Base-Stock Policy across ALL policies (level playing field)
+        # Policy A uses constant historical mean forecast; B/C/D use their respective models
+        d_hat = max(float(demand_forecast[day_idx]), 0.5)
+        lead_time_demand = d_hat * lead_time_days
+        # Safety stock buffer based on demand variability: z = 1.645 for 95% service level SLA
+        sigma_d = max(1.0, d_hat * 0.30)
+        safety_stock = float(1.645 * np.sqrt(lead_time_days) * sigma_d)
+        dynamic_rop = lead_time_demand + safety_stock
+        target_stock = dynamic_rop + (d_hat * 4.0)  # cycle stock: 4-day coverage
 
-            should_order = current_position <= dynamic_rop
-            order_size = max(0, int(np.ceil(target_stock - current_position)))
+        should_order = current_position <= dynamic_rop
+        order_size = max(0, int(np.ceil(target_stock - current_position)))
 
         if should_order and order_size > 0:
             arrival_day = day_idx + lead_time_days

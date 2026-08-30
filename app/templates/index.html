@@ -39,6 +39,17 @@
       </div>
     </div>
     <div class="navbar-spacer"></div>
+    <div style="display:flex; align-items:center; gap:0.5rem; margin-right:1rem;">
+      <label for="currency-select" style="font-size:0.75rem; color:#8892a4; font-weight:500;">Currency:</label>
+      <select id="currency-select" onchange="changeCurrency(this.value)" style="background:#1a1d27; color:#fff; border:1px solid #2d3142; border-radius:4px; padding:0.25rem 0.5rem; font-size:0.8rem; font-weight:600; cursor:pointer;">
+        <option value="INR" selected>₹ INR</option>
+        <option value="USD">$ USD</option>
+        <option value="EUR">€ EUR</option>
+      </select>
+    </div>
+    <button onclick="openColdStartModal()" style="background:#27ae60; color:#fff; border:none; border-radius:6px; padding:0.35rem 0.8rem; font-size:0.8rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:0.3rem; margin-right:1rem;">
+      <span>+</span> Add New SKU
+    </button>
     <div class="navbar-badge" title="API status">
       <span class="dot"></span>
       Live
@@ -206,11 +217,17 @@
       <!-- Demand history chart -->
       <section class="chart-card" aria-label="Demand history chart">
         <div class="chart-header">
-          <h2 class="chart-title">Demand History &amp; Stock Levels</h2>
+          <div>
+            <h2 class="chart-title">Demand History &amp; Stock Levels</h2>
+            <p style="font-size:0.75rem; color:#8892a4; margin-top:0.25rem;">
+              Comparing <strong style="color:#e74c3c;">Simulated Latent Demand</strong> against Recorded POS Sales.<br>
+              <em style="font-size:0.7rem; color:#6b7280;">ⓘ In real retail, true customer demand is unobservable during shelf stockouts. In this simulation, latent demand is recorded to scientifically evaluate model de-censoring.</em>
+            </p>
+          </div>
           <div class="chart-legend" aria-hidden="true">
             <div class="legend-item">
               <span class="legend-dot" style="background-color:rgba(231,76,60,0.85); background-image:repeating-linear-gradient(90deg,rgba(231,76,60,0.85) 0,rgba(231,76,60,0.85) 4px,transparent 4px,transparent 8px);"></span>
-              True Demand
+              Simulated Latent Demand
             </div>
             <div class="legend-item">
               <span class="legend-dot" style="background-color:#4f8ef7;"></span>
@@ -235,9 +252,42 @@
         </div>
       </section>
 
+      <!-- What-If Scenario Simulator Card -->
+      <section class="panel-card" style="margin-top:1.5rem;" aria-label="What-if scenario simulator">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
+          <h2 class="panel-title" style="margin:0;">What-If Decision Simulator</h2>
+          <span style="font-size:0.75rem; color:#4f8ef7; background:rgba(79,142,247,0.1); border:1px solid rgba(79,142,247,0.3); padding:0.2rem 0.5rem; rounded:4px;">Operational Shock Stress-Test</span>
+        </div>
+        <p style="font-size:0.75rem; color:#8892a4; margin-bottom:1rem;">
+          Test supplier shipping delays and unexpected inventory shocks on the current SKU without modifying live store records.
+        </p>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1rem;">
+          <div>
+            <label style="font-size:0.75rem; color:#8892a4; display:block; margin-bottom:0.3rem;">Supplier Lead-Time Shock:</label>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <input id="whatif-lead-delta" type="range" min="0" max="5" value="0" step="1" oninput="runWhatIf()" style="flex:1; accent-color:#4f8ef7;" />
+              <span id="whatif-lead-val" style="font-family:monospace; font-size:0.8rem; font-weight:600; width:45px;">+0 days</span>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:0.75rem; color:#8892a4; display:block; margin-bottom:0.3rem;">Inventory Shock / Shrinkage:</label>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <input id="whatif-inv-delta" type="range" min="-20" max="20" value="0" step="5" oninput="runWhatIf()" style="flex:1; accent-color:#4f8ef7;" />
+              <span id="whatif-inv-val" style="font-family:monospace; font-size:0.8rem; font-weight:600; width:55px;">+0 units</span>
+            </div>
+          </div>
+        </div>
+        <div id="whatif-result-box" style="background:#12151f; border:1px solid #2d3142; border-radius:8px; padding:0.8rem; font-size:0.8rem; color:#8892a4;">
+          <span id="whatif-summary">Adjust sliders above to stress-test inventory against supplier delays and sudden demand/spoilage shocks.</span>
+        </div>
+      </section>
+
       <!-- Simulation comparison table -->
-      <section class="sim-card" aria-label="Replenishment policy simulation">
-        <h2 class="panel-title">Simulation Comparison</h2>
+      <section class="sim-card" aria-label="Replenishment policy simulation" style="margin-top:1.5rem;">
+        <h2 class="panel-title">Simulation Comparison (Standardized Base-Stock Policy)</h2>
+        <p style="font-size:0.75rem; color:#8892a4; margin-bottom:0.8rem;">
+          Level playing field: All policies run the <strong>exact same (s, S) replenishment mechanics</strong> on test data.
+        </p>
         <div class="table-wrapper">
           <table id="sim-table" class="sim-table">
             <thead>
@@ -260,6 +310,78 @@
 
     </div><!-- end .right-panel -->
   </main>
+
+  <!-- ═══════════════════════════════════════════ COLD-START MODAL ══ -->
+  <div id="cold-start-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; display:none; align-items:center; justify-content:center; padding:1rem;">
+    <div style="background:#1a1d27; border:1px solid #2d3142; border-radius:12px; max-width:550px; width:100%; padding:1.5rem; max-height:90vh; overflow-y:auto; box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-b:1px solid #2d3142; padding-bottom:0.5rem;">
+        <div>
+          <h3 style="font-size:1.1rem; font-weight:700; color:#ffffff; margin:0;">Add New SKU — Cold-Start Demand Forecast</h3>
+          <p style="font-size:0.75rem; color:#8892a4; margin-top:0.2rem;">Zero sales history? Uses attribute analog matching &amp; quantile priors.</p>
+        </div>
+        <button onclick="closeColdStartModal()" style="background:transparent; border:none; color:#8892a4; font-size:1.4rem; cursor:pointer;">&times;</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.8rem; margin-bottom:1rem;">
+        <div>
+          <label style="font-size:0.75rem; color:#8892a4; display:block; margin-bottom:0.2rem;">Product Name *</label>
+          <input id="cs-name" type="text" value="Organic Almond Milk 1L" class="form-control" style="font-size:0.8rem; padding:0.4rem 0.6rem;" />
+        </div>
+        <div>
+          <label style="font-size:0.75rem; color:#8892a4; display:block; margin-bottom:0.2rem;">Category *</label>
+          <select id="cs-category" class="form-control" style="font-size:0.8rem; padding:0.4rem 0.6rem;">
+            <option value="Dairy" selected>Dairy</option>
+            <option value="Bakery">Bakery</option>
+            <option value="Snacks">Snacks</option>
+            <option value="Grains">Grains</option>
+            <option value="Cooking">Cooking</option>
+            <option value="Beverage">Beverage</option>
+            <option value="Personal Care">Personal Care</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.75rem; color:#8892a4; display:block; margin-bottom:0.2rem;">Retail Price (<span id="cs-curr-sym">₹</span>) *</label>
+          <input id="cs-price" type="number" value="75.0" min="1" step="0.5" class="form-control" style="font-size:0.8rem; padding:0.4rem 0.6rem;" />
+        </div>
+        <div>
+          <label style="font-size:0.75rem; color:#8892a4; display:block; margin-bottom:0.2rem;">Lead Time (Days) *</label>
+          <input id="cs-lead" type="number" value="2" min="1" max="14" class="form-control" style="font-size:0.8rem; padding:0.4rem 0.6rem;" />
+        </div>
+        <div>
+          <label style="font-size:0.75rem; color:#8892a4; display:block; margin-bottom:0.2rem;">Supplier MOQ (Units)</label>
+          <input id="cs-moq" type="number" value="24" min="1" class="form-control" style="font-size:0.8rem; padding:0.4rem 0.6rem;" />
+        </div>
+        <div>
+          <label style="font-size:0.75rem; color:#8892a4; display:block; margin-bottom:0.2rem;">Case Pack Size</label>
+          <input id="cs-pack" type="number" value="6" min="1" class="form-control" style="font-size:0.8rem; padding:0.4rem 0.6rem;" />
+        </div>
+      </div>
+
+      <button onclick="submitColdStart()" type="button" class="btn-predict" style="width:100%; margin-bottom:1rem; padding:0.5rem; font-size:0.85rem;">
+        ⚡ Generate Cold-Start Launch Forecast
+      </button>
+
+      <!-- Cold start results container -->
+      <div id="cs-results" style="display:none; background:#12151f; border:1px solid #2d3142; border-radius:8px; padding:1rem; font-size:0.8rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <span style="font-weight:700; color:#fff;" id="cs-res-status">Status: READY</span>
+          <span id="cs-res-conf" style="padding:0.2rem 0.5rem; border-radius:4px; font-weight:600; font-size:0.75rem; background:rgba(39,174,96,0.2); color:#27ae60;">HIGH CONFIDENCE</span>
+        </div>
+        <p id="cs-res-expl" style="color:#8892a4; font-size:0.75rem; margin-bottom:0.8rem; line-height:1.4;"></p>
+        <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:0.4rem; text-align:center; margin-bottom:0.8rem;">
+          <div style="background:#1a1d27; padding:0.4rem; border-radius:4px;"><span style="font-size:0.65rem; color:#8892a4;">P10</span><br><strong id="cs-p10" style="color:#4f8ef7;">-</strong></div>
+          <div style="background:#1a1d27; padding:0.4rem; border-radius:4px;"><span style="font-size:0.65rem; color:#8892a4;">P50</span><br><strong id="cs-p50" style="color:#27ae60;">-</strong></div>
+          <div style="background:#1a1d27; padding:0.4rem; border-radius:4px;"><span style="font-size:0.65rem; color:#8892a4;">P80</span><br><strong id="cs-p80" style="color:#f39c12;">-</strong></div>
+          <div style="background:#1a1d27; padding:0.4rem; border-radius:4px;"><span style="font-size:0.65rem; color:#8892a4;">P90</span><br><strong id="cs-p90" style="color:#e74c3c;">-</strong></div>
+          <div style="background:#1a1d27; padding:0.4rem; border-radius:4px;"><span style="font-size:0.65rem; color:#8892a4;">P95</span><br><strong id="cs-p95" style="color:#e74c3c;">-</strong></div>
+        </div>
+        <div style="background:rgba(79,142,247,0.1); border:1px solid rgba(79,142,247,0.3); border-radius:6px; padding:0.6rem; display:flex; justify-content:space-between; align-items:center;">
+          <span style="color:#ffffff; font-weight:600;">Recommended Initial Pilot Order:</span>
+          <span id="cs-pilot-order" style="font-size:1.1rem; font-weight:700; color:#4f8ef7;">- units</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="/static/app.js"></script>
 </body>

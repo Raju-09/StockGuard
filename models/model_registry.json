@@ -74,9 +74,46 @@
           "rolling_min_7",
           "rolling_max_7"
         ]
+      },
+      "v3": {
+        "file": "naive_v3.joblib",
+        "saved_at": "2026-08-30T12:58:06.791464",
+        "metrics": {
+          "n_all": 240,
+          "mae_all": 4.85,
+          "rmse_all": 6.6765,
+          "wape_all": 0.4406,
+          "bias_all": -1.7167,
+          "n_censored": 67,
+          "n_uncensored": 173,
+          "mae_censored": 4.4328,
+          "rmse_censored": 5.6608,
+          "wape_censored": 0.3955,
+          "bias_censored": -0.8806,
+          "mae_uncensored": 5.0116,
+          "rmse_uncensored": 7.0305,
+          "wape_uncensored": 0.4585,
+          "bias_uncensored": -2.0405
+        },
+        "feature_cols": [
+          "day_of_week",
+          "month",
+          "is_weekend",
+          "is_holiday",
+          "price",
+          "promo",
+          "opening_stock",
+          "lag_1",
+          "lag_7",
+          "rolling_mean_7",
+          "rolling_mean_14",
+          "rolling_std_7",
+          "rolling_min_7",
+          "rolling_max_7"
+        ]
       }
     },
-    "latest": "v2"
+    "latest": "v3"
   },
   "ma7": {
     "versions": {
@@ -153,9 +190,46 @@
           "rolling_min_7",
           "rolling_max_7"
         ]
+      },
+      "v3": {
+        "file": "ma7_v3.joblib",
+        "saved_at": "2026-08-30T12:58:06.813637",
+        "metrics": {
+          "n_all": 240,
+          "mae_all": 3.4893,
+          "rmse_all": 4.8448,
+          "wape_all": 0.317,
+          "bias_all": -1.744,
+          "n_censored": 67,
+          "n_uncensored": 173,
+          "mae_censored": 3.823,
+          "rmse_censored": 5.0153,
+          "wape_censored": 0.3411,
+          "bias_censored": -3.0213,
+          "mae_uncensored": 3.36,
+          "rmse_uncensored": 4.7771,
+          "wape_uncensored": 0.3074,
+          "bias_uncensored": -1.2494
+        },
+        "feature_cols": [
+          "day_of_week",
+          "month",
+          "is_weekend",
+          "is_holiday",
+          "price",
+          "promo",
+          "opening_stock",
+          "lag_1",
+          "lag_7",
+          "rolling_mean_7",
+          "rolling_mean_14",
+          "rolling_std_7",
+          "rolling_min_7",
+          "rolling_max_7"
+        ]
       }
     },
-    "latest": "v2"
+    "latest": "v3"
   },
   "ma14": {
     "versions": {
@@ -232,9 +306,46 @@
           "rolling_min_7",
           "rolling_max_7"
         ]
+      },
+      "v3": {
+        "file": "ma14_v3.joblib",
+        "saved_at": "2026-08-30T12:58:06.837549",
+        "metrics": {
+          "n_all": 240,
+          "mae_all": 3.4765,
+          "rmse_all": 4.8994,
+          "wape_all": 0.3158,
+          "bias_all": -1.7688,
+          "n_censored": 67,
+          "n_uncensored": 173,
+          "mae_censored": 3.839,
+          "rmse_censored": 5.0007,
+          "wape_censored": 0.3425,
+          "bias_censored": -3.2015,
+          "mae_uncensored": 3.3361,
+          "rmse_uncensored": 4.8596,
+          "wape_uncensored": 0.3052,
+          "bias_uncensored": -1.2139
+        },
+        "feature_cols": [
+          "day_of_week",
+          "month",
+          "is_weekend",
+          "is_holiday",
+          "price",
+          "promo",
+          "opening_stock",
+          "lag_1",
+          "lag_7",
+          "rolling_mean_7",
+          "rolling_mean_14",
+          "rolling_std_7",
+          "rolling_min_7",
+          "rolling_max_7"
+        ]
       }
     },
-    "latest": "v2"
+    "latest": "v3"
   },
   "linear": {
     "versions": {
@@ -311,9 +422,46 @@
           "rolling_min_7",
           "rolling_max_7"
         ]
+      },
+      "v3": {
+        "file": "linear_v3.joblib",
+        "saved_at": "2026-08-30T12:58:07.429505",
+        "metrics": {
+          "n_all": 240,
+          "mae_all": 3.9869,
+          "rmse_all": 5.2429,
+          "wape_all": 0.3622,
+          "bias_all": -1.9098,
+          "n_censored": 67,
+          "n_uncensored": 173,
+          "mae_censored": 5.5329,
+          "rmse_censored": 6.7095,
+          "wape_censored": 0.4936,
+          "bias_censored": -5.5255,
+          "mae_uncensored": 3.3882,
+          "rmse_uncensored": 4.5497,
+          "wape_uncensored": 0.31,
+          "bias_uncensored": -0.5095
+        },
+        "feature_cols": [
+          "day_of_week",
+          "month",
+          "is_weekend",
+          "is_holiday",
+          "price",
+          "promo",
+          "opening_stock",
+          "lag_1",
+          "lag_7",
+          "rolling_mean_7",
+          "rolling_mean_14",
+          "rolling_std_7",
+          "rolling_min_7",
+          "rolling_max_7"
+        ]
       }
     },
-    "latest": "v2"
+    "latest": "v3"
   },
   "random_forest": {
     "versions": {
@@ -390,9 +538,46 @@
           "rolling_min_7",
           "rolling_max_7"
         ]
+      },
+      "v3": {
+        "file": "random_forest_v3.joblib",
+        "saved_at": "2026-08-30T12:58:07.932789",
+        "metrics": {
+          "n_all": 240,
+          "mae_all": 3.7528,
+          "rmse_all": 5.259,
+          "wape_all": 0.3409,
+          "bias_all": -1.6238,
+          "n_censored": 67,
+          "n_uncensored": 173,
+          "mae_censored": 5.8699,
+          "rmse_censored": 7.5901,
+          "wape_censored": 0.5237,
+          "bias_censored": -5.8601,
+          "mae_uncensored": 2.9329,
+          "rmse_uncensored": 4.007,
+          "wape_uncensored": 0.2683,
+          "bias_uncensored": 0.0169
+        },
+        "feature_cols": [
+          "day_of_week",
+          "month",
+          "is_weekend",
+          "is_holiday",
+          "price",
+          "promo",
+          "opening_stock",
+          "lag_1",
+          "lag_7",
+          "rolling_mean_7",
+          "rolling_mean_14",
+          "rolling_std_7",
+          "rolling_min_7",
+          "rolling_max_7"
+        ]
       }
     },
-    "latest": "v2"
+    "latest": "v3"
   },
   "gradient_boost": {
     "versions": {
@@ -469,9 +654,46 @@
           "rolling_min_7",
           "rolling_max_7"
         ]
+      },
+      "v3": {
+        "file": "gradient_boost_v3.joblib",
+        "saved_at": "2026-08-30T12:58:08.514339",
+        "metrics": {
+          "n_all": 240,
+          "mae_all": 3.7232,
+          "rmse_all": 5.1886,
+          "wape_all": 0.3382,
+          "bias_all": -1.5207,
+          "n_censored": 67,
+          "n_uncensored": 173,
+          "mae_censored": 5.8812,
+          "rmse_censored": 7.5567,
+          "wape_censored": 0.5247,
+          "bias_censored": -5.8354,
+          "mae_uncensored": 2.8875,
+          "rmse_uncensored": 3.9028,
+          "wape_uncensored": 0.2642,
+          "bias_uncensored": 0.1503
+        },
+        "feature_cols": [
+          "day_of_week",
+          "month",
+          "is_weekend",
+          "is_holiday",
+          "price",
+          "promo",
+          "opening_stock",
+          "lag_1",
+          "lag_7",
+          "rolling_mean_7",
+          "rolling_mean_14",
+          "rolling_std_7",
+          "rolling_min_7",
+          "rolling_max_7"
+        ]
       }
     },
-    "latest": "v2"
+    "latest": "v3"
   },
   "censoring_aware": {
     "versions": {
@@ -548,9 +770,46 @@
           "rolling_min_7",
           "rolling_max_7"
         ]
+      },
+      "v3": {
+        "file": "censoring_aware_v3.joblib",
+        "saved_at": "2026-08-30T12:58:09.459191",
+        "metrics": {
+          "n_all": 240,
+          "mae_all": 3.0423,
+          "rmse_all": 4.0988,
+          "wape_all": 0.2764,
+          "bias_all": -0.7868,
+          "n_censored": 67,
+          "n_uncensored": 173,
+          "mae_censored": 3.5946,
+          "rmse_censored": 4.7159,
+          "wape_censored": 0.3207,
+          "bias_censored": -2.8522,
+          "mae_uncensored": 2.8285,
+          "rmse_uncensored": 3.8332,
+          "wape_uncensored": 0.2588,
+          "bias_uncensored": 0.0131
+        },
+        "feature_cols": [
+          "day_of_week",
+          "month",
+          "is_weekend",
+          "is_holiday",
+          "price",
+          "promo",
+          "opening_stock",
+          "lag_1",
+          "lag_7",
+          "rolling_mean_7",
+          "rolling_mean_14",
+          "rolling_std_7",
+          "rolling_min_7",
+          "rolling_max_7"
+        ]
       }
     },
-    "latest": "v2"
+    "latest": "v3"
   },
   "stockout_classifier": {
     "versions": {
@@ -605,8 +864,34 @@
           "rolling_min_7",
           "rolling_max_7"
         ]
+      },
+      "v3": {
+        "file": "stockout_classifier_v3.joblib",
+        "saved_at": "2026-08-30T12:58:10.027914",
+        "metrics": {
+          "precision": 0.8692307692307693,
+          "recall": 0.8071428571428572,
+          "f1": 0.837037037037037,
+          "pr_auc": 0.9240517043162517
+        },
+        "feature_cols": [
+          "day_of_week",
+          "month",
+          "is_weekend",
+          "is_holiday",
+          "price",
+          "promo",
+          "opening_stock",
+          "lag_1",
+          "lag_7",
+          "rolling_mean_7",
+          "rolling_mean_14",
+          "rolling_std_7",
+          "rolling_min_7",
+          "rolling_max_7"
+        ]
       }
     },
-    "latest": "v2"
+    "latest": "v3"
   }
 }
