@@ -3,6 +3,7 @@ scripts/execute_notebooks.py — Run all notebooks and save pre-rendered outputs
 """
 
 from pathlib import Path
+
 import nbformat
 from nbclient import NotebookClient
 
@@ -18,7 +19,7 @@ notebook_files = [
 for nb_name in notebook_files:
     nb_path = NOTEBOOKS_DIR / nb_name
     print(f"Executing {nb_name}...")
-    with open(nb_path, "r", encoding="utf-8") as f:
+    with open(nb_path, encoding="utf-8") as f:
         nb = nbformat.read(f, as_version=4)
 
     client = NotebookClient(nb, timeout=600, kernel_name="python3", resources={"metadata": {"path": str(NOTEBOOKS_DIR)}})
