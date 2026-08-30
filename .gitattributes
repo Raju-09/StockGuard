@@ -1,0 +1,23 @@
+# .gitattributes — normalise line endings across OS.
+# Windows devs get CRLF on checkout; Linux/Mac get LF.
+# The repo always stores LF (the Git default).
+
+* text=auto
+
+# Force LF for files that must have LF (shell scripts, YAML, notebooks).
+*.sh   text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.toml text eol=lf
+
+# Python source: platform-native on checkout, LF in repo.
+*.py   text eol=lf
+
+# Binary files — no line-ending conversion.
+*.joblib binary
+*.pkl    binary
+*.h5     binary
+*.png    binary
+*.jpg    binary

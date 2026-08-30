@@ -1,0 +1,105 @@
+# .coderabbit.yaml — CodeRabbit automated code review configuration.
+# Docs: https://docs.coderabbit.ai/configure/yaml-config
+#
+# After installing the CodeRabbit GitHub App (https://github.com/apps/coderabbitai),
+# CodeRabbit reads this file automatically on every pull request.
+# No token or manual setup required beyond installing the App.
+
+language: "en-US"
+
+# ── Review behaviour ──────────────────────────────────────────────────────────
+reviews:
+  # Review every PR automatically, not just on @coderabbitai mention.
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false   # disable the poem — we want signal, not theatre
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - "main"
+
+# ── Custom instructions — ML-specific rules ───────────────────────────────────
+# These tell CodeRabbit what to look for beyond general code quality.
+instructions: |
+  This is a machine learning research project (StockGuard) focused on
+  inventory demand forecasting under stockout censoring.
+
+  Apply these domain-specific checks on every review:
+
+  DATA LEAKAGE
+  - Flag any use of `true_demand`, `lost_sales`, `is_censored`, or
+    `demand_mean` as model features or in training pipelines.
+    These columns are ground-truth labels that would not exist in a real store.
+  - Flag any use of `closing_stock` of the CURRENT day as a feature when
+    predicting that same day's demand (future leakage).
+
+  TEMPORAL VALIDATION
+  - Flag any call to `train_test_split` without `shuffle=False` on time-series data.
+  - Flag any test/validation set that includes dates earlier than training dates.
+  - Random splitting of temporal data is explicitly forbidden in this project.
+
+  METRICS
+  - Flag use of `accuracy_score` for demand forecasting (it is a classification metric).
+  - Flag use of MAPE when sales contain zeros (division by zero); prefer WAPE.
+  - Flag evaluation on training data presented as test performance.
+
+  HARDCODED VALUES
+  - Flag magic numbers for train/val/test fractions — they should be constants.
+  - Flag hardcoded product names or file paths that should be config-driven.
+
+  MODEL VERSIONING
+  - Flag model saves that overwrite a previous file instead of versioning.
+  - Flag predictions that do not include `model_version` in the response.
+
+  SIMULATION INTEGRITY
+  - Flag any change to `src/simulate.py` that breaks the invariant:
+    `observed_sales == min(true_demand, opening_stock)`.
+
+  GENERAL ML HYGIENE
+  - Flag fitting scalers or encoders on val/test data.
+  - Flag feature importances or SHAP without corresponding evaluation context.
+
+# ── Path filters ──────────────────────────────────────────────────────────────
+path_filters:
+  - "!venv/**"
+  - "!.pytest_cache/**"
+  - "!.ruff_cache/**"
+  - "!data/raw/*.csv"       # large generated files
+  - "!models/*.joblib"
+  - "!**/__pycache__/**"
+
+# ── File-level review notes ───────────────────────────────────────────────────
+path_instructions:
+  - path: "src/features.py"
+    instructions: |
+      Verify every new feature is computable from information available
+      BEFORE the prediction date. Flag lag features that include same-day values.
+
+  - path: "src/train.py"
+    instructions: |
+      Verify that temporal_split() is used, not sklearn's train_test_split
+      with shuffle=True. Verify model files are versioned, not overwritten.
+
+  - path: "src/evaluate.py"
+    instructions: |
+      Verify that evaluation is split into censored vs uncensored rows.
+      Verify WAPE handles zero-denominator edge case.
+
+  - path: "notebooks/**"
+    instructions: |
+      Check that no notebook uses true_demand, lost_sales, is_censored,
+      or demand_mean as model training features. Check that temporal split
+      is respected — no random splitting of dates.
+
+  - path: "app/**"
+    instructions: |
+      Verify input validation (inventory >= 0, price > 0, known product).
+      Verify prediction response includes model_version.
+      Verify errors return structured JSON, not raw exceptions.
+
+# ── Chat ──────────────────────────────────────────────────────────────────────
+chat:
+  auto_reply: true

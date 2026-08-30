@@ -1,0 +1,14 @@
+# models/ — serialised model files go here
+#
+# Naming convention:
+#   <model_name>_v<version>.joblib
+#
+# Example:
+#   demand_model_v1.joblib
+#   demand_model_v2.joblib
+#   stockout_classifier_v1.joblib
+#
+# Never overwrite a previous version.
+# Record each version in models/model_registry.json (added in Phase 5).
+#
+# This file is tracked so the empty directory is committed to git.

@@ -1,0 +1,11 @@
+# Convenience wrapper — actual pinned deps live in pyproject.toml.
+#
+# Install everything (including dev tools):
+#   pip install -e ".[dev]"
+#
+# Or just the runtime deps:
+#   pip install -e .
+#
+# This file exists only so bare `pip install -r requirements.txt` still works
+# for users who haven't read the docs yet.
+-e .

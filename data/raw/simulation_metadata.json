@@ -1,0 +1,19 @@
+{
+  "data_source": "simulated",
+  "warning": "Not real store data. Ground-truth demand is known only because we generated it.",
+  "seed": 42,
+  "n_days": 120,
+  "n_products": 10,
+  "n_rows": 1200,
+  "store": "store_01",
+  "start_date": "2025-09-01",
+  "end_date": "2025-12-29",
+  "censoring_rule": "sales = min(true_demand, opening_stock)",
+  "stockout_flag_definition": "closing_stock == 0 (observable; not the same as true lost demand)",
+  "is_censored_definition": "true_demand >= opening_stock (requires ground truth)",
+  "replenishment": "(s, Q) policy with lead time; some SKUs are intentionally under-stocked",
+  "true_demand_usage": "evaluation only; do not use as a training feature",
+  "n_censored_rows": 322,
+  "n_stockout_flag_rows": 322,
+  "total_lost_sales_units": 2021
+}

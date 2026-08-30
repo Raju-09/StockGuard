@@ -1,0 +1,49 @@
+# ── Python ─────────────────────────────────────────────────────────────────────
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ── Notebooks ──────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── Tooling caches ─────────────────────────────────────────────────────────────
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# ── Data files — CSVs are generated, not committed ─────────────────────────────
+# Metadata JSON is committed (small, documents the dataset).
+# Raw CSVs are large and always regenerable via: python src/simulate.py
+data/raw/*.csv
+
+# Processed outputs are also generated artifacts.
+data/processed/
+
+# ── Model artifacts ────────────────────────────────────────────────────────────
+*.joblib
+*.pkl
+*.h5
+*.pt
+*.onnx
+
+# ── Logs ───────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Environment / secrets ──────────────────────────────────────────────────────
+.env
+.env.*
+
+# ── OS ─────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
