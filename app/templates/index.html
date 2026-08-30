@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="StockGuard — AI-powered inventory intelligence dashboard" />
+  <title>StockGuard — Inventory Intelligence</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body onload="onLoad()">
+
+  <!-- ═══════════════════════════════════════════ LOADING OVERLAY ══ -->
+  <div id="loading-overlay" class="loading-overlay" role="status" aria-label="Loading">
+    <div class="spinner-box">
+      <div class="spinner"></div>
+      <span class="spinner-label">Running forecast…</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ ERROR TOAST ═══════ -->
+  <div id="error-toast" class="error-toast" role="alert" aria-live="assertive">
+    <span class="toast-icon">⚠️</span>
+    <div class="toast-content">
+      <span class="toast-title">Error</span>
+      <span id="toast-message" class="toast-message"></span>
+    </div>
+    <button class="toast-close" onclick="hideToast()" aria-label="Dismiss">&times;</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ NAVBAR ═══════════ -->
+  <header class="navbar">
+    <div class="navbar-logo">
+      <div class="navbar-icon" aria-hidden="true">📦</div>
+      <div class="navbar-brand">
+        <span class="navbar-title">STOCKGUARD</span>
+        <span class="navbar-subtitle">Inventory Intelligence</span>
+      </div>
+    </div>
+    <div class="navbar-spacer"></div>
+    <div class="navbar-badge" title="API status">
+      <span class="dot"></span>
+      Live
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════ MAIN LAYOUT ══════ -->
+  <main class="main-container">
+
+    <!-- ───────────────────────── LEFT PANEL — CONTROLS ─────────── -->
+    <aside class="left-panel">
+
+      <!-- Control card -->
+      <section class="panel-card" aria-label="Forecast controls">
+        <h2 class="panel-title">Configuration</h2>
+
+        <!-- Product selector -->
+        <div class="form-group">
+          <label for="product" class="form-label">
+            Product <span aria-hidden="true">*</span>
+          </label>
+          <select id="product" class="form-control" aria-required="true">
+            <option value="" disabled selected>Select a product…</option>
+          </select>
+
+          <!-- Inline product metadata (shown after selection) -->
+          <div id="product-info" class="product-info" aria-live="polite">
+            <div class="product-stat">
+              <span class="product-stat-label">Avg. daily demand</span>
+              <span id="product-avg-demand" class="product-stat-value">—</span>
+            </div>
+            <div class="product-stat">
+              <span class="product-stat-label">Historical stockout</span>
+              <span id="product-stockout-days" class="product-stat-value">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Current inventory -->
+        <div class="form-group">
+          <label for="inventory" class="form-label">
+            Current Inventory <span aria-hidden="true">*</span>
+          </label>
+          <input
+            id="inventory"
+            type="number"
+            class="form-control"
+            placeholder="e.g. 250"
+            min="0"
+            step="1"
+            aria-required="true"
+          />
+        </div>
+
+        <!-- Price -->
+        <div class="form-group">
+          <label for="price" class="form-label">
+            Unit Price (USD) <span aria-hidden="true">*</span>
+          </label>
+          <input
+            id="price"
+            type="number"
+            class="form-control"
+            placeholder="e.g. 29.99"
+            min="0.01"
+            step="0.01"
+            aria-required="true"
+          />
+        </div>
+
+        <!-- Promo toggle -->
+        <div class="form-group">
+          <span class="form-label">Promotion Active</span>
+          <div class="toggle-group">
+            <span class="toggle-label">Enable promotional pricing</span>
+            <label class="toggle-switch" aria-label="Enable promotion">
+              <input id="promo" type="checkbox" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button
+          id="predict-btn"
+          class="btn-predict"
+          onclick="submit()"
+          type="button"
+          aria-label="Run demand forecast"
+        >
+          <span>⚡</span>
+          Run Forecast
+        </button>
+      </section>
+
+      <!-- Model info card -->
+      <section class="panel-card" aria-label="Model information">
+        <h2 class="panel-title">Model</h2>
+        <div style="display:flex; flex-direction:column; gap:0.6rem;">
+          <div class="product-stat">
+            <span class="product-stat-label">Version</span>
+            <span id="model-version" class="model-version-tag" style="display:none;">—</span>
+          </div>
+          <div class="product-stat">
+            <span class="product-stat-label">Algorithm</span>
+            <span class="product-stat-value">Gradient Boosting</span>
+          </div>
+          <div class="product-stat">
+            <span class="product-stat-label">Simulator</span>
+            <span class="product-stat-value">Monte Carlo</span>
+          </div>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- ────────────────────────── RIGHT PANEL — RESULTS ─────────── -->
+    <div class="right-panel">
+
+      <!-- Metric cards -->
+      <section aria-label="Forecast metrics">
+        <div class="metric-grid">
+
+          <!-- Forecast Demand -->
+          <article class="metric-card">
+            <span class="metric-icon" aria-hidden="true">📈</span>
+            <span class="metric-label">Forecast Demand</span>
+            <span id="forecast-demand" class="metric-value placeholder">—</span>
+            <span class="metric-sub">units (next period)</span>
+          </article>
+
+          <!-- Stockout Risk -->
+          <article class="metric-card">
+            <span class="metric-icon" aria-hidden="true">🔴</span>
+            <span class="metric-label">Stockout Risk</span>
+            <span id="stockout-risk" class="metric-value placeholder">—</span>
+            <span id="risk-badge" class="risk-badge" style="display:none;" aria-live="polite"></span>
+          </article>
+
+          <!-- Recommended Order -->
+          <article class="metric-card">
+            <span class="metric-icon" aria-hidden="true">🛒</span>
+            <span class="metric-label">Recommended Order</span>
+            <span id="recommended-order" class="metric-value placeholder">—</span>
+            <span class="metric-sub">units to reorder</span>
+          </article>
+
+          <!-- Days Until Stockout -->
+          <article class="metric-card">
+            <span class="metric-icon" aria-hidden="true">⏳</span>
+            <span class="metric-label">Days Until Stockout</span>
+            <span id="days-until-stockout" class="metric-value placeholder">—</span>
+            <span class="metric-sub">at current sell-through</span>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- AI Explanation (visible after first predict) -->
+      <section id="explanation-card" class="explanation-card" aria-live="polite" aria-label="Forecast explanation">
+        <h2 class="panel-title">Explanation</h2>
+        <p id="explanation-text" class="explanation-text"></p>
+      </section>
+
+      <!-- Demand history chart -->
+      <section class="chart-card" aria-label="Demand history chart">
+        <div class="chart-header">
+          <h2 class="chart-title">Demand History &amp; Stock Levels</h2>
+          <div class="chart-legend" aria-hidden="true">
+            <div class="legend-item">
+              <span class="legend-dot" style="background-color:rgba(231,76,60,0.85); background-image:repeating-linear-gradient(90deg,rgba(231,76,60,0.85) 0,rgba(231,76,60,0.85) 4px,transparent 4px,transparent 8px);"></span>
+              True Demand
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot" style="background-color:#4f8ef7;"></span>
+              Observed Sales
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot" style="background-color:#27ae60;"></span>
+              Opening Stock
+            </div>
+          </div>
+        </div>
+
+        <!-- Placeholder shown before first forecast -->
+        <div id="chart-placeholder" class="chart-placeholder" aria-hidden="true">
+          <span class="chart-placeholder-icon">📊</span>
+          <span>Run a forecast to see demand history</span>
+        </div>
+
+        <!-- Canvas wrapper hidden until data arrives -->
+        <div id="chart-wrapper" class="chart-wrapper" style="display:none;">
+          <canvas id="demand-chart" aria-label="Demand history line chart" role="img"></canvas>
+        </div>
+      </section>
+
+      <!-- Simulation comparison table -->
+      <section class="sim-card" aria-label="Replenishment policy simulation">
+        <h2 class="panel-title">Simulation Comparison</h2>
+        <div class="table-wrapper">
+          <table id="sim-table" class="sim-table">
+            <thead>
+              <tr>
+                <th scope="col">Policy</th>
+                <th scope="col">Stockout %</th>
+                <th scope="col">Holding Cost</th>
+                <th scope="col">Lost Sales</th>
+                <th scope="col">Total Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="5" class="table-empty">Loading simulation data…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div><!-- end .right-panel -->
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

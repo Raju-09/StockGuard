@@ -1,0 +1,50 @@
+[
+  {
+    "policy": "A_no_forecast",
+    "stockout_pct": 7.08,
+    "service_level": 0.9292,
+    "lost_sales_units": 101,
+    "holding_cost": 4176.5,
+    "ordering_cost": 2150.0,
+    "lost_sales_cost": 1010.0,
+    "total_cost": 7336.5,
+    "n_orders": 43,
+    "is_best": true
+  },
+  {
+    "policy": "C_gradient_boost",
+    "stockout_pct": 4.58,
+    "service_level": 0.9542,
+    "lost_sales_units": 90,
+    "holding_cost": 6020.5,
+    "ordering_cost": 2300.0,
+    "lost_sales_cost": 900.0,
+    "total_cost": 9220.5,
+    "n_orders": 46,
+    "is_best": false
+  },
+  {
+    "policy": "D_censoring_aware",
+    "stockout_pct": 4.58,
+    "service_level": 0.9542,
+    "lost_sales_units": 90,
+    "holding_cost": 6492.0,
+    "ordering_cost": 2150.0,
+    "lost_sales_cost": 900.0,
+    "total_cost": 9542.0,
+    "n_orders": 43,
+    "is_best": false
+  },
+  {
+    "policy": "B_naive",
+    "stockout_pct": 5.83,
+    "service_level": 0.9417,
+    "lost_sales_units": 101,
+    "holding_cost": 7290.5,
+    "ordering_cost": 2300.0,
+    "lost_sales_cost": 1010.0,
+    "total_cost": 10600.5,
+    "n_orders": 46,
+    "is_best": false
+  }
+]

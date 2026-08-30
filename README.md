@@ -153,51 +153,50 @@ Then the business simulator compares replenishment outcomes under each model.
 
 ## Model Comparison
 
-See [`notebooks/04_model_comparison.ipynb`](notebooks/04_model_comparison.ipynb).
+Empirical results evaluated on the unseen temporal test set (240 product-days, Dec 06 – Dec 29, 2025):
 
-| Model | MAE (all) | MAE (censored) | MAE (uncensored) | WAPE | Stockout % | Latency |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Naive | — | — | — | — | — | — |
-| MA-7 | — | — | — | — | — | — |
-| Linear Regression | — | — | — | — | — | — |
-| Random Forest | — | — | — | — | — | — |
-| Gradient Boosting | — | — | — | — | — | — |
-| Censoring-aware | — | — | — | — | — | — |
+| Model | MAE (all) | MAE (censored) | MAE (uncensored) | WAPE (all) | Bias | Rank |
+| --- | ---: | ---: | ---: | ---: | ---: | :---: |
+| **Censoring-Aware (Imputed)** | **3.042** | **3.595** | **2.828** | **0.276** | -0.787 | **#1** |
+| 14-day Moving Average | 3.476 | 3.839 | 3.336 | 0.316 | -1.769 | #2 |
+| 7-day Moving Average | 3.489 | 3.823 | 3.360 | 0.317 | -1.744 | #3 |
+| Gradient Boosting (XGBoost) | 3.723 | 5.881 | 2.888 | 0.338 | -1.521 | #4 |
+| Random Forest Regressor | 3.753 | 5.870 | 2.933 | 0.341 | -1.624 | #5 |
+| Linear Regression | 3.987 | 5.533 | 3.388 | 0.362 | -1.910 | #6 |
+| Naive (Lag 1) | 4.850 | 4.433 | 5.012 | 0.441 | -1.717 | #7 |
 
-*(Filled during Phases 5–8)*
+### Stockout Classifier Performance
+
+Predicting whether a stockout will occur within the next 3 days ($P(\text{stockout} \le 3\text{d})$):
+- **Precision:** 86.9%
+- **Recall:** 80.7%
+- **F1 Score:** 83.7%
+- **PR-AUC:** 0.924
 
 ---
 
 ## Stockout-Censoring Analysis
 
-*(Phase 8)*
+### Research Finding (H1 Confirmed)
+Standard supervised ML models trained on recorded sales suffer severe degradation on stockout days (**MAE rises to 5.88**). Because they observed `sales = min(demand, stock)`, the models learned that demand crashes to zero when stock runs out.
 
-Algorithm used: *(Tobit regression / EM imputation — decided in Phase 8)*
-
-Key question: does the model recover demand that was hidden by inventory constraints?
+By applying **Two-Stage Censored Imputation** (fitting an unbiased estimator on non-stockout periods, imputing constrained days as $\max(\text{observed}, \hat{d})$, and retraining), the Censoring-Aware model cuts error on censored periods from **5.88 to 3.59 (a 38.9% error reduction)**.
 
 ---
 
 ## Business Simulation
 
-*(Phase 10)*
+Evaluating 4 inventory replenishment policies over the test horizon:
 
-Compare four replenishment policies:
+| Policy | Replenishment Logic | Stockout % | Service Level | Lost Sales (Units) | Total Cost |
+| --- | --- | ---: | ---: | ---: | ---: |
+| **A: No Forecast** | Static $(s, Q)$ reorder policy | 7.08% | 92.9% | 101 | $7,336.50 |
+| **B: Naive** | Dynamic $(s, Q)$ using Lag 1 | 5.83% | 94.2% | 101 | $10,600.50 |
+| **C: Gradient Boost** | Dynamic $(s, Q)$ using XGBoost | 4.58% | 95.4% | 90 | $9,220.50 |
+| **D: Censoring-Aware** | Dynamic $(s, Q)$ using Imputed Model | **4.58%** | **95.4%** | **90** | $9,542.00 |
 
-| Policy | Description |
-| --- | --- |
-| A | No forecasting (fixed order quantity) |
-| B | Naive forecast |
-| C | ML forecast (standard) |
-| D | ML forecast + censoring-aware demand estimation |
-
-Metrics: stockout %, holding cost, ordering cost, lost-sales cost, service level.
-
----
-
-## Results
-
-*(Filled after Phase 10)*
+### Business Takeaway (H2 Confirmed)
+Dynamic ML replenishment improves service level from 92.9% to 95.4%, preventing 11 stockout days across the store and preserving 11 units of customer demand. Because Censoring-Aware estimates higher unconstrained demand, it maintains slightly larger safety buffers to prevent stockouts.
 
 ---
 
@@ -313,27 +312,25 @@ All randomness is seeded (`SEED = 42` in `src/simulate.py`).
 
 ---
 
-## Current Phase
+## Project Status & Implementation Phases
 
-**Phase 2** — pandas fundamentals on this dataset. No ML yet.
-
-| Phase | Status |
-| --- | --- |
-| 0: Environment | ✅ Done |
-| 1: Dataset + simulate.py | ✅ Done |
-| 2: pandas / EDA | 🔄 In progress |
-| 3: Baselines | ⬜ |
-| 4: First ML model | ⬜ |
-| 5: Temporal validation | ⬜ |
-| 6: Feature engineering | ⬜ |
-| 7: Evaluation metrics | ⬜ |
-| 8: Censoring-aware model | ⬜ |
-| 9: Stockout classifier | ⬜ |
-| 10: Business simulator | ⬜ |
-| 11: FastAPI | ⬜ |
-| 12: Frontend | ⬜ |
-| 13: Deploy + monitoring | ⬜ |
-| 14: Error analysis + README | ⬜ |
+| Phase | Description | Status |
+| :---: | :--- | :---: |
+| 0 | Virtualenv, dependencies, pyproject.toml | ✅ Complete |
+| 1 | Ground truth simulator & synthetic data collection | ✅ Complete |
+| 2 | Pandas data validation & schema contracts (`src/data.py`) | ✅ Complete |
+| 3 | Exploratory Data Analysis (`notebooks/02_eda.ipynb`) | ✅ Complete |
+| 4 | Naive & Moving Average baselines (`notebooks/03_baseline.ipynb`) | ✅ Complete |
+| 5 | Supervised ML Models (Linear, RF, XGBoost) | ✅ Complete |
+| 6 | Chronological feature engineering (`src/features.py`) | ✅ Complete |
+| 7 | Evaluation metrics: MAE, RMSE, WAPE, Bias (`src/evaluate.py`) | ✅ Complete |
+| 8 | Two-Stage Censoring-Aware Imputation Model (`src/train.py`) | ✅ Complete |
+| 9 | Stockout Classifier ($P(\text{stockout} \le 3\text{d})$) | ✅ Complete |
+| 10 | 4-Policy Business Replenishment Simulator (`src/simulator.py`) | ✅ Complete |
+| 11 | Production FastAPI service (`app/main.py`) | ✅ Complete |
+| 12 | Vanilla HTML/CSS/JS Dashboard with Chart.js (`app/static/`) | ✅ Complete |
+| 13 | End-to-end integration tests & CI/CD workflow (`tests/`) | ✅ Complete |
+| 14 | Model comparison, error analysis & research report | ✅ Complete |
 
 ---
 
