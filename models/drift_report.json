@@ -1,0 +1,101 @@
+{
+  "baseline_rows": 840,
+  "current_rows": 360,
+  "feature_drift": {
+    "day_of_week": {
+      "psi": 0.0043,
+      "ks_statistic": 0.0238,
+      "p_value": 0.9983,
+      "status": "STABLE"
+    },
+    "month": {
+      "psi": 5.9784,
+      "ks_statistic": 0.8056,
+      "p_value": 0.0,
+      "status": "DRIFT_DETECTED"
+    },
+    "is_weekend": {
+      "psi": 0.0003,
+      "ks_statistic": 0.0079,
+      "p_value": 1.0,
+      "status": "STABLE"
+    },
+    "is_holiday": {
+      "psi": 0.0006,
+      "ks_statistic": 0.004,
+      "p_value": 1.0,
+      "status": "STABLE"
+    },
+    "price": {
+      "psi": 0.0,
+      "ks_statistic": 0.0,
+      "p_value": 1.0,
+      "status": "STABLE"
+    },
+    "promo": {
+      "psi": 0.0031,
+      "ks_statistic": 0.0135,
+      "p_value": 1.0,
+      "status": "STABLE"
+    },
+    "opening_stock": {
+      "psi": 0.0324,
+      "ks_statistic": 0.0409,
+      "p_value": 0.7789,
+      "status": "STABLE"
+    },
+    "lag_1": {
+      "psi": 0.0139,
+      "ks_statistic": 0.0225,
+      "p_value": 0.9992,
+      "status": "STABLE"
+    },
+    "lag_7": {
+      "psi": 0.0363,
+      "ks_statistic": 0.0342,
+      "p_value": 0.9245,
+      "status": "STABLE"
+    },
+    "rolling_mean_7": {
+      "psi": 0.0569,
+      "ks_statistic": 0.0495,
+      "p_value": 0.5501,
+      "status": "STABLE"
+    },
+    "rolling_mean_14": {
+      "psi": 0.1065,
+      "ks_statistic": 0.0682,
+      "p_value": 0.1824,
+      "status": "MODERATE_SHIFT"
+    },
+    "rolling_std_7": {
+      "psi": 0.0455,
+      "ks_statistic": 0.0373,
+      "p_value": 0.8621,
+      "status": "STABLE"
+    },
+    "rolling_min_7": {
+      "psi": 0.0746,
+      "ks_statistic": 0.0741,
+      "p_value": 0.1198,
+      "status": "STABLE"
+    },
+    "rolling_max_7": {
+      "psi": 0.2752,
+      "ks_statistic": 0.0629,
+      "p_value": 0.2609,
+      "status": "DRIFT_DETECTED"
+    }
+  },
+  "overall_status": "ACTION_REQUIRED",
+  "stockout_telemetry": {
+    "baseline_stockout_pct": 27.5,
+    "current_stockout_pct": 25.28,
+    "stockout_delta_pct": -2.22,
+    "alert": false
+  },
+  "high_drift_features": [
+    "month",
+    "rolling_max_7"
+  ]
+}

@@ -225,3 +225,16 @@ def model_comparison() -> dict[str, Any]:
     with open(RESULTS_PATH, encoding="utf-8") as f:
         data = json.load(f)
     return {"comparison": data}
+
+
+@app.get("/monitoring/drift")
+def get_drift_telemetry() -> dict[str, Any]:
+    """Return Population Stability Index (PSI) and feature drift telemetry."""
+    try:
+        from src.monitoring import run_drift_analysis
+        return run_drift_analysis()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to compute drift telemetry: {exc}"
+        ) from exc
+
