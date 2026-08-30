@@ -46,6 +46,20 @@ SAFETY_STOCK_DAYS: float = 2.0
 # Number of history days to include in the chart payload.
 HISTORY_DAYS: int = 30
 
+# Known product substitution network (fixes the Cross-SKU Substitution Loophole)
+SUBSTITUTE_PAIRS: dict[str, str] = {
+    "Milk": "Yogurt",
+    "Yogurt": "Milk",
+    "Tea": "Sugar",
+    "Biscuits": "Bread",
+    "Bread": "Biscuits",
+    "Rice": "Oil",
+    "Oil": "Rice",
+    "Soap": "None",
+    "Eggs": "Bread",
+    "Sugar": "Tea",
+}
+
 
 # ── Request / Response schemas ────────────────────────────────────────────────
 
@@ -57,6 +71,7 @@ class PredictionRequest:
     promo: int          # 0 or 1
     model_name: str = "censoring_aware"
     lead_time_days: int = DEFAULT_LEAD_TIME_DAYS
+    service_level_target: float = 0.95
 
 
 @dataclass
@@ -71,6 +86,8 @@ class PredictionResponse:
     model_version: str
     explanation: dict               # breakdown for the UI "Why?" panel
     history: dict                   # {dates, sales, opening_stock, true_demand}
+    financial_impact: dict          # holding cost vs lost sales trade-off
+    substitution_alert: dict        # cross-SKU spillover warning
 
 
 # ── Input validation ───────────────────────────────────────────────────────────
@@ -110,16 +127,25 @@ def _compute_recommended_order(
     current_inventory: int,
     lead_time_days: int,
     safety_stock_days: float = SAFETY_STOCK_DAYS,
-) -> int:
-    """Simple order formula:
+) -> tuple[int, float, float]:
+    """Stochastic replenishment formula:
         order = lead_time_demand + safety_stock - current_inventory
 
-    If the result is negative (enough stock), recommend 0.
+    Where safety_stock accounts for stochastic demand variance.
+    Returns: (order_qty, lead_time_demand, safety_stock_units)
     """
     lead_time_demand = forecast_demand * lead_time_days
-    safety_stock = forecast_demand * safety_stock_days
+    # Demand std dev estimated as ~30% of daily mean demand
+    sigma_d = max(1.0, forecast_demand * 0.30)
+    # Z-score for 95% service level = 1.645
+    z_score = 1.645
+    # Stochastic buffer across lead time: z * sqrt(L) * sigma_d
+    safety_stock = float(z_score * np.sqrt(lead_time_days) * sigma_d)
+    # Floor safety stock at least 1.5 days
+    safety_stock = max(safety_stock, forecast_demand * 1.5)
+
     order = lead_time_demand + safety_stock - current_inventory
-    return max(0, int(np.ceil(order)))
+    return max(0, int(np.ceil(order))), round(lead_time_demand, 2), round(safety_stock, 2)
 
 
 def _compute_days_until_stockout(
@@ -250,7 +276,7 @@ def predict(
             stockout_risk = 0.15
 
     # ── Business layer ────────────────────────────────────────────────────────
-    recommended_order = _compute_recommended_order(
+    recommended_order, lead_time_demand, safety_stock_units = _compute_recommended_order(
         forecast_demand,
         req.current_inventory,
         req.lead_time_days,
@@ -260,18 +286,49 @@ def predict(
     )
     risk_label = _compute_risk_label(stockout_risk)
 
+    # ── Financial trade-off calculations (CFO / Finance Story) ────────────────
+    daily_holding_cost_per_unit = 0.50
+    estimated_daily_holding_cost = round(req.current_inventory * daily_holding_cost_per_unit, 2)
+    # Opportunity cost of unmet demand: lost margin approx 40% of unit price
+    gross_margin_rate = 0.40
+    expected_daily_lost_sales_units = round(forecast_demand * stockout_risk, 2)
+    expected_lost_margin_per_day = round(expected_daily_lost_sales_units * (req.price * gross_margin_rate), 2)
+
+    financial_impact = {
+        "daily_holding_cost": estimated_daily_holding_cost,
+        "holding_cost_rate": f"${daily_holding_cost_per_unit}/unit/day",
+        "expected_lost_margin_per_day": expected_lost_margin_per_day,
+        "trade_off_recommendation": (
+            "Buffer stock justified: potential lost sales margin exceeds holding costs."
+            if expected_lost_margin_per_day > estimated_daily_holding_cost
+            else "Inventory level optimal: holding costs in line with demand."
+        ),
+    }
+
+    # ── Cross-SKU Substitution Alert (Substitution Loophole) ──────────────────
+    substitute_sku = SUBSTITUTE_PAIRS.get(req.product, "None")
+    substitution_alert = {
+        "substitute_sku": substitute_sku,
+        "is_active": risk_label == "HIGH" and substitute_sku != "None",
+        "message": (
+            f"High stockout risk for {req.product}! Monitor {substitute_sku} for an expected +15% to +25% spillover demand surge."
+            if (risk_label == "HIGH" and substitute_sku != "None")
+            else f"No substitution surge expected for {substitute_sku}."
+        ),
+    }
+
     # ── Explanation ───────────────────────────────────────────────────────────
     explanation = {
         "forecast_demand_per_day": round(forecast_demand, 2),
         "lead_time_days": req.lead_time_days,
-        "lead_time_demand": round(forecast_demand * req.lead_time_days, 2),
+        "lead_time_demand": lead_time_demand,
         "safety_stock_days": SAFETY_STOCK_DAYS,
-        "safety_stock_units": round(forecast_demand * SAFETY_STOCK_DAYS, 2),
+        "safety_stock_units": safety_stock_units,
         "current_inventory": req.current_inventory,
         "recommended_order_formula": (
-            f"ceil({round(forecast_demand * req.lead_time_days, 1)} + "
-            f"{round(forecast_demand * SAFETY_STOCK_DAYS, 1)} - "
-            f"{req.current_inventory}) = {recommended_order}"
+            f"ceil({lead_time_demand} [Lead-Time] + "
+            f"{safety_stock_units} [Stochastic Buffer] - "
+            f"{req.current_inventory} [On-Hand]) = {recommended_order} units"
         ),
     }
 
@@ -289,4 +346,6 @@ def predict(
         model_version=model_version,
         explanation=explanation,
         history=history,
+        financial_impact=financial_impact,
+        substitution_alert=substitution_alert,
     )

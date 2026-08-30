@@ -179,11 +179,28 @@ async function submit() {
       mvEl.style.display = 'inline-flex';
     }
 
-    // ── Explanation ────────────────────────────────────────────────────────
+    // ── Explanation & PM Insights ─────────────────────────────────────────
     const explCard = document.getElementById('explanation-card');
     const explText = document.getElementById('explanation-text');
     if (explCard && explText && data.explanation) {
-      explText.innerHTML = data.explanation;
+      let html = '';
+      if (typeof data.explanation === 'object') {
+        html += `<div style="margin-bottom:0.5rem; font-family:monospace; font-size:0.95em;"><strong>Replenishment:</strong> ${data.explanation.recommended_order_formula}</div>`;
+      } else {
+        html += data.explanation;
+      }
+      if (data.financial_impact) {
+        html += `<div style="margin-top:0.5rem; padding-top:0.5rem; border-top:1px solid rgba(255,255,255,0.1); font-size:0.85em; color:#8892a4;">
+          <strong>Financial Optimization:</strong> Est. Holding Cost: $${data.financial_impact.daily_holding_cost}/day | Expected Lost Margin: $${data.financial_impact.expected_lost_margin_per_day}/day.<br>
+          <span style="color:#ffffff;">${data.financial_impact.trade_off_recommendation}</span>
+        </div>`;
+      }
+      if (data.substitution_alert && data.substitution_alert.is_active) {
+        html += `<div style="margin-top:0.5rem; padding:0.5rem 0.75rem; background:rgba(231,76,60,0.15); border-left:3px solid #e74c3c; border-radius:4px; font-size:0.85em; color:#ff8b80;">
+          <strong>⚠️ Cross-SKU Substitution Alert:</strong> ${data.substitution_alert.message}
+        </div>`;
+      }
+      explText.innerHTML = html;
       explCard.classList.add('visible');
     }
 

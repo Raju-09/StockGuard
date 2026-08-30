@@ -151,6 +151,8 @@ def predict_endpoint(payload: PredictPayload) -> dict[str, Any]:
             "model_version": res.model_version,
             "explanation": res.explanation,
             "history": res.history,
+            "financial_impact": res.financial_impact,
+            "substitution_alert": res.substitution_alert,
         }
     except ValueError as val_err:
         raise HTTPException(status_code=422, detail=str(val_err)) from val_err

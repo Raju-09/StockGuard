@@ -54,6 +54,9 @@ def test_predict_endpoint_valid():
     assert data["stockout_risk_label"] in ["LOW", "MEDIUM", "HIGH"]
     assert "history" in data
     assert "explanation" in data
+    assert "financial_impact" in data
+    assert "substitution_alert" in data
+    assert "daily_holding_cost" in data["financial_impact"]
 
 
 def test_predict_endpoint_validation_error():

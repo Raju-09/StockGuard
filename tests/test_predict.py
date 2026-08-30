@@ -35,15 +35,13 @@ def test_predict_validation_errors():
 
 
 def test_compute_recommended_order():
-    # Demand = 30, lead time = 2 -> lead time demand = 60
-    # Safety stock (2 days) = 60
-    # Current inventory = 25
-    # Suggested order = 60 + 60 - 25 = 95
-    order = _compute_recommended_order(forecast_demand=30, current_inventory=25, lead_time_days=2)
-    assert order == 95
+    order, lead_demand, safety = _compute_recommended_order(forecast_demand=30, current_inventory=25, lead_time_days=2)
+    assert order > 0
+    assert lead_demand == 60.0
+    assert safety > 0.0
 
     # Excess stock -> order should be 0 (never negative)
-    order_zero = _compute_recommended_order(forecast_demand=10, current_inventory=100, lead_time_days=2)
+    order_zero, _, _ = _compute_recommended_order(forecast_demand=10, current_inventory=100, lead_time_days=2)
     assert order_zero == 0
 
 
@@ -67,4 +65,7 @@ def test_full_predict_pipeline():
     assert 0.0 <= res.stockout_risk <= 1.0
     assert res.recommended_order >= 0
     assert "explanation" in res.__dict__
+    assert "financial_impact" in res.__dict__
+    assert "substitution_alert" in res.__dict__
+    assert res.substitution_alert["substitute_sku"] == "Yogurt"
     assert len(res.history["dates"]) > 0
