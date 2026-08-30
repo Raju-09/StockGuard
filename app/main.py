@@ -91,7 +91,7 @@ class PredictPayload(BaseModel):
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request) -> Any:
     """Serve the single-page dashboard."""
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html")
 
 
 @app.get("/health")

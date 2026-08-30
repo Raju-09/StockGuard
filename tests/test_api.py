@@ -8,6 +8,13 @@ from fastapi.testclient import TestClient
 client = TestClient(app)
 
 
+def test_index_dashboard():
+    res = client.get("/")
+    assert res.status_code == 200
+    assert "STOCKGUARD" in res.text
+    assert "demand-chart" in res.text
+
+
 def test_health():
     res = client.get("/health")
     assert res.status_code == 200
