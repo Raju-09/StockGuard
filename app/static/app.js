@@ -54,6 +54,17 @@ async function loadProducts() {
 
     // Wire up product-change handler for metadata display
     select.addEventListener('change', onProductChange);
+
+    // Auto-select first product and trigger initial forecast on page load
+    if (products.length > 0) {
+      select.value = products[0].name;
+      onProductChange({ target: select });
+      const invInput = document.getElementById('inventory');
+      const priceInput = document.getElementById('price');
+      if (invInput && !invInput.value) invInput.value = '24';
+      if (priceInput && !priceInput.value) priceInput.value = '55';
+      submit();
+    }
   } catch (err) {
     console.error('Failed to load products:', err);
     showToast('Could not load products. Check that the API is running.');
