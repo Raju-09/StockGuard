@@ -12,7 +12,7 @@ Simulation logic:
         2. Use a simple (s, Q) replenishment policy:
                if (inventory + pipeline - today's demand) <= reorder_point:
                    place an order of size order_qty
-           Orders arrive after lead_time_days.
+           Orders arrive after lead_time_days (with optional stochastic variability).
         3. Serve customers from available stock.
         4. Track: stockout days, holding cost, ordering cost, lost-sales cost.
 
@@ -110,6 +110,7 @@ def simulate_product(
     reorder_point: int,
     order_qty: int,
     lead_time_days: int,
+    lead_time_std: float = 0.0,  # standard deviation of lead time in days (0 = deterministic)
     policy_name: str,
     holding_cost_per_unit: float = HOLDING_COST_PER_UNIT_PER_DAY,
     ordering_cost: float = ORDERING_COST_PER_ORDER,
@@ -125,7 +126,7 @@ def simulate_product(
     true_demand:
         Actual customer demand (from ground truth). Used to compute
         actual sales, stockouts, and lost sales.
-    initial_stock, reorder_point, order_qty, lead_time_days:
+    initial_stock, reorder_point, order_qty, lead_time_days, lead_time_std:
         Replenishment parameters.
     policy_name:
         Label for this simulation run.
@@ -171,7 +172,12 @@ def simulate_product(
         lead_time_demand = d_hat * lead_time_days
         # Safety stock buffer based on demand variability: z = 1.645 for 95% service level SLA
         sigma_d = max(1.0, d_hat * 0.30)
-        safety_stock = float(1.645 * np.sqrt(lead_time_days) * sigma_d)
+        if lead_time_std > 0:
+            safety_stock = float(1.645 * np.sqrt(
+                lead_time_days * sigma_d ** 2 + d_hat ** 2 * lead_time_std ** 2
+            ))
+        else:
+            safety_stock = float(1.645 * np.sqrt(lead_time_days) * sigma_d)
         dynamic_rop = lead_time_demand + safety_stock
         target_stock = dynamic_rop + (d_hat * 4.0)  # cycle stock: 4-day coverage
 
@@ -179,7 +185,11 @@ def simulate_product(
         order_size = max(0, int(np.ceil(target_stock - current_position)))
 
         if should_order and order_size > 0:
-            arrival_day = day_idx + lead_time_days
+            if lead_time_std > 0:
+                actual_lt = max(1, int(np.round(np.random.normal(lead_time_days, lead_time_std))))
+            else:
+                actual_lt = lead_time_days
+            arrival_day = day_idx + actual_lt
             if arrival_day < n_days:  # only order if delivery arrives before sim ends
                 inbound[arrival_day] = inbound.get(arrival_day, 0) + order_size
                 result.n_orders += 1
@@ -245,7 +255,7 @@ def simulate_policy(
 
         params = product_params.get(
             product,
-            {"initial_stock": 30, "reorder_point": 15, "order_qty": 30, "lead_time_days": 2},
+            {"initial_stock": 30, "reorder_point": 15, "order_qty": 30, "lead_time_days": 2, "lead_time_std": 0.0},
         )
 
         result = simulate_product(
@@ -315,5 +325,6 @@ def get_product_params_from_simulator(df_observed: pd.DataFrame) -> dict[str, di
             "reorder_point": int(avg_sales * 3),   # 3-day buffer
             "order_qty": int(avg_sales * 7),        # 1-week supply
             "lead_time_days": 2,
+            "lead_time_std": 0.5,  # supplier variability: ~0.5 day std
         }
     return params

@@ -3,99 +3,196 @@
   "current_rows": 360,
   "feature_drift": {
     "day_of_week": {
-      "psi": 0.0043,
-      "ks_statistic": 0.0238,
-      "p_value": 0.9983,
-      "status": "STABLE"
+      "feature_type": "categorical",
+      "jensen_shannon_div": 0.0005,
+      "chi2_stat": 1.1204,
+      "chi2_pvalue": 0.9806,
+      "status": "STABLE",
+      "action": "NO_ACTION",
+      "action_reason": "Drift within acceptable bounds.",
+      "interpretation": "JSD: 0=identical | <0.05 stable | 0.05-0.10 moderate | >0.10 significant",
+      "note": "PSI is NOT used for categorical features to avoid artificially inflated scores (e.g. month=1-12 bin artifacts)."
     },
     "month": {
-      "psi": 5.9784,
-      "ks_statistic": 0.8056,
-      "p_value": 0.0,
-      "status": "DRIFT_DETECTED"
+      "feature_type": "categorical",
+      "jensen_shannon_div": 0.5342,
+      "chi2_stat": 944.4444,
+      "chi2_pvalue": 0.0,
+      "status": "DRIFT_DETECTED",
+      "action": "MONITOR",
+      "action_reason": "Feature drift detected but forecast performance and business metrics remain stable. Increase monitoring frequency. Do NOT retrain yet.",
+      "interpretation": "JSD: 0=identical | <0.05 stable | 0.05-0.10 moderate | >0.10 significant",
+      "note": "PSI is NOT used for categorical features to avoid artificially inflated scores (e.g. month=1-12 bin artifacts)."
     },
     "is_weekend": {
-      "psi": 0.0003,
-      "ks_statistic": 0.0079,
-      "p_value": 1.0,
-      "status": "STABLE"
+      "feature_type": "binary",
+      "baseline_rate": 0.2857,
+      "current_rate": 0.2778,
+      "rate_delta": -0.0079,
+      "baseline_ci": [
+        0.2562,
+        0.3172
+      ],
+      "current_ci": [
+        0.234,
+        0.3262
+      ],
+      "ci_overlap": true,
+      "significant": false,
+      "status": "STABLE",
+      "action": "NO_ACTION",
+      "interpretation": "Rate delta + Wilson CI: significant if 95% CIs do not overlap"
     },
     "is_holiday": {
-      "psi": 0.0006,
-      "ks_statistic": 0.004,
-      "p_value": 1.0,
-      "status": "STABLE"
+      "feature_type": "binary",
+      "baseline_rate": 0.0238,
+      "current_rate": 0.0278,
+      "rate_delta": 0.004,
+      "baseline_ci": [
+        0.0155,
+        0.0365
+      ],
+      "current_ci": [
+        0.0152,
+        0.0504
+      ],
+      "ci_overlap": true,
+      "significant": false,
+      "status": "STABLE",
+      "action": "NO_ACTION",
+      "interpretation": "Rate delta + Wilson CI: significant if 95% CIs do not overlap"
     },
     "price": {
+      "feature_type": "continuous",
       "psi": 0.0,
-      "ks_statistic": 0.0,
-      "p_value": 1.0,
-      "status": "STABLE"
+      "ks_stat": 0.0,
+      "ks_pvalue": 1.0,
+      "wasserstein_1": 0.0007,
+      "status": "STABLE",
+      "action": "NO_ACTION",
+      "action_reason": "Drift within acceptable bounds.",
+      "interpretation": "PSI: <0.10 stable | 0.10-0.25 moderate | >0.25 significant"
     },
     "promo": {
-      "psi": 0.0031,
-      "ks_statistic": 0.0135,
-      "p_value": 1.0,
-      "status": "STABLE"
+      "feature_type": "binary",
+      "baseline_rate": 0.069,
+      "current_rate": 0.0556,
+      "rate_delta": -0.0135,
+      "baseline_ci": [
+        0.0538,
+        0.0882
+      ],
+      "current_ci": [
+        0.0362,
+        0.0842
+      ],
+      "ci_overlap": true,
+      "significant": false,
+      "status": "STABLE",
+      "action": "NO_ACTION",
+      "interpretation": "Rate delta + Wilson CI: significant if 95% CIs do not overlap"
     },
     "opening_stock": {
+      "feature_type": "continuous",
       "psi": 0.0324,
-      "ks_statistic": 0.0409,
-      "p_value": 0.7789,
-      "status": "STABLE"
+      "ks_stat": 0.0409,
+      "ks_pvalue": 0.7789,
+      "wasserstein_1": 0.0122,
+      "status": "STABLE",
+      "action": "NO_ACTION",
+      "action_reason": "Drift within acceptable bounds.",
+      "interpretation": "PSI: <0.10 stable | 0.10-0.25 moderate | >0.25 significant"
     },
     "lag_1": {
+      "feature_type": "continuous",
       "psi": 0.0139,
-      "ks_statistic": 0.0225,
-      "p_value": 0.9992,
-      "status": "STABLE"
+      "ks_stat": 0.0225,
+      "ks_pvalue": 0.9992,
+      "wasserstein_1": 0.0077,
+      "status": "STABLE",
+      "action": "NO_ACTION",
+      "action_reason": "Drift within acceptable bounds.",
+      "interpretation": "PSI: <0.10 stable | 0.10-0.25 moderate | >0.25 significant"
     },
     "lag_7": {
+      "feature_type": "continuous",
       "psi": 0.0363,
-      "ks_statistic": 0.0342,
-      "p_value": 0.9245,
-      "status": "STABLE"
+      "ks_stat": 0.0342,
+      "ks_pvalue": 0.9245,
+      "wasserstein_1": 0.01,
+      "status": "STABLE",
+      "action": "NO_ACTION",
+      "action_reason": "Drift within acceptable bounds.",
+      "interpretation": "PSI: <0.10 stable | 0.10-0.25 moderate | >0.25 significant"
     },
     "rolling_mean_7": {
+      "feature_type": "continuous",
       "psi": 0.0569,
-      "ks_statistic": 0.0495,
-      "p_value": 0.5501,
-      "status": "STABLE"
+      "ks_stat": 0.0495,
+      "ks_pvalue": 0.5501,
+      "wasserstein_1": 0.0095,
+      "status": "STABLE",
+      "action": "NO_ACTION",
+      "action_reason": "Drift within acceptable bounds.",
+      "interpretation": "PSI: <0.10 stable | 0.10-0.25 moderate | >0.25 significant"
     },
     "rolling_mean_14": {
+      "feature_type": "continuous",
       "psi": 0.1065,
-      "ks_statistic": 0.0682,
-      "p_value": 0.1824,
-      "status": "MODERATE_SHIFT"
+      "ks_stat": 0.0682,
+      "ks_pvalue": 0.1824,
+      "wasserstein_1": 0.0144,
+      "status": "MODERATE_SHIFT",
+      "action": "NO_ACTION",
+      "action_reason": "Drift within acceptable bounds.",
+      "interpretation": "PSI: <0.10 stable | 0.10-0.25 moderate | >0.25 significant"
     },
     "rolling_std_7": {
+      "feature_type": "continuous",
       "psi": 0.0455,
-      "ks_statistic": 0.0373,
-      "p_value": 0.8621,
-      "status": "STABLE"
+      "ks_stat": 0.0373,
+      "ks_pvalue": 0.8621,
+      "wasserstein_1": 0.0184,
+      "status": "STABLE",
+      "action": "NO_ACTION",
+      "action_reason": "Drift within acceptable bounds.",
+      "interpretation": "PSI: <0.10 stable | 0.10-0.25 moderate | >0.25 significant"
     },
     "rolling_min_7": {
+      "feature_type": "continuous",
       "psi": 0.0746,
-      "ks_statistic": 0.0741,
-      "p_value": 0.1198,
-      "status": "STABLE"
+      "ks_stat": 0.0741,
+      "ks_pvalue": 0.1198,
+      "wasserstein_1": 0.0244,
+      "status": "STABLE",
+      "action": "NO_ACTION",
+      "action_reason": "Drift within acceptable bounds.",
+      "interpretation": "PSI: <0.10 stable | 0.10-0.25 moderate | >0.25 significant"
     },
     "rolling_max_7": {
+      "feature_type": "continuous",
       "psi": 0.2752,
-      "ks_statistic": 0.0629,
-      "p_value": 0.2609,
-      "status": "DRIFT_DETECTED"
+      "ks_stat": 0.0629,
+      "ks_pvalue": 0.2609,
+      "wasserstein_1": 0.0324,
+      "status": "DRIFT_DETECTED",
+      "action": "MONITOR",
+      "action_reason": "Feature drift detected but forecast performance and business metrics remain stable. Increase monitoring frequency. Do NOT retrain yet.",
+      "interpretation": "PSI: <0.10 stable | 0.10-0.25 moderate | >0.25 significant"
     }
   },
-  "overall_status": "ACTION_REQUIRED",
+  "overall_status": "MONITOR",
   "stockout_telemetry": {
     "baseline_stockout_pct": 27.5,
     "current_stockout_pct": 25.28,
     "stockout_delta_pct": -2.22,
-    "alert": false
+    "alert": false,
+    "direction": "IMPROVING"
   },
+  "drift_methodology": "Continuous: PSI + KS + Wasserstein | Categorical: Jensen-Shannon divergence | Binary: Rate delta + Wilson 95% CI",
   "high_drift_features": [
     "month",
     "rolling_max_7"
-  ]
+  ],
+  "recommendation": "Feature drift detected in: month, rolling_max_7. CHECK forecast performance metrics (WAPE, bias) and business metrics (stockout rate, fill rate) BEFORE deciding to retrain. Drift alone is insufficient grounds for retraining."
 }

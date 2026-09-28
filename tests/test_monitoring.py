@@ -28,5 +28,11 @@ def test_run_drift_analysis():
     assert "current_rows" in results
     assert "feature_drift" in results
     assert "stockout_telemetry" in results
-    assert results["overall_status"] in ["HEALTHY", "ACTION_REQUIRED", "STABLE"]
+    assert results["overall_status"] in ["HEALTHY", "ACTION_REQUIRED", "STABLE", "MONITOR"]
     assert "day_of_week" in results["feature_drift"]
+    # Check categorical feature uses Jensen-Shannon
+    assert "jensen_shannon_div" in results["feature_drift"]["day_of_week"]
+    # Check continuous feature uses PSI and KS
+    assert "psi" in results["feature_drift"]["opening_stock"]
+    assert "ks_stat" in results["feature_drift"]["opening_stock"]
+

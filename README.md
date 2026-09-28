@@ -200,18 +200,38 @@ Dynamic ML replenishment improves service level from 92.9% to 95.4%, preventing 
 
 ---
 
-## Failure Analysis
+## Engineering Scars: What Didn't Work
 
-*(Phase 14)*
+Real engineering leaves a paper trail of hypotheses that failed and required architectural redesigns.
 
-| Situation | Error level | Hypothesis |
-| --- | --- | --- |
-| Stockout day | High | Demand censored in training |
-| Promotion | High | Promotion multiplier underestimated |
-| Holiday | Medium | Calendar feature insufficient |
-| New product | High | Insufficient history |
+| What Failed | Why it Failed | What We Changed |
+|---|---|---|
+| **1. Unshifted Rolling Aggregations** | Rolling mean of sales without `shift(1)` included today's sales in today's feature matrix, producing an artificially low test WAPE. | Enforced strict `shift(1)` across all lags and rolling statistics in `src/features.py`. Added invariant test `test_no_future_leakage_in_features`. |
+| **2. Un-leveled Policy Simulation** | In early simulation backtests, the No-Forecast baseline won on total cost because it held lower safety stock, running inventory down to zero while ML maintained target service levels. | Standardized every policy onto the exact same Base-Stock $(s, S)$ mechanism. Only the forecast signal $\hat{d}$ varies, isolating the value of forecasting accuracy. |
+| **3. High Stockout Risk on Overstocked SKUs** | Classification model predicted high risk based on historical frequency, but system recommended `Order: 0` because current runway was 30 days. Users were confused. | Added structured `order_zero_reason` in the decision contract: explicitly differentiating historical risk from immediate runway safety. |
+| **4. Raw PSI on Calendar Features** | Applying Population Stability Index to `month` (1–12) or `is_weekend` (0/1) produced false alarms ($PSI > 5.0$) due to normal seasonal progression. | Engineered feature-type-aware drift routing in `src/monitoring.py`: PSI for continuous, Jensen-Shannon for categorical, and Wilson 95% CI for binary flags. |
+| **5. Deterministic 2-Day Lead Time** | Assuming zero supplier delivery variability resulted in stockouts during transit delays, even with 95% service target. | Added stochastic lead time parameterization ($\sigma_{\text{LT}} = 0.5\text{d}$) and upgraded safety stock: $SS = z \sqrt{\overline{\text{LT}} \sigma_d^2 + \bar{d}^2 \sigma_{\text{LT}}^2}$. |
 
 ---
+
+## Architectural Decision Records: Why We Rejected This
+
+- **Why not Deep Learning / LSTM?**  
+  Our dataset size (10 SKUs, 120 days) does not justify sequential neural networks. Gradient boosting with lag features trains in milliseconds, offers exact feature attribution, and avoids catastrophic overfitting on small samples.
+- **Why not an LLM for replenishment quantities?**  
+  Calculating reorder points is deterministic arithmetic: $S = \text{Lead Demand} + \text{Safety Stock}$, rounded to case packs and constrained by MOQ. Using an LLM for numerical supply chain optimization is brittle, non-reproducible, and un-auditable by CFOs.
+- **Why not Reinforcement Learning (RL)?**  
+  Before attempting sequential policy optimization via PPO or DQN, we must establish a rigorous offline $(s, S)$ heuristic benchmark with stochastic demand and lead time.
+
+---
+
+## Experiments Archive
+
+See detailed hypothesis-driven experiment writeups in [`experiments/`](experiments/):
+- [`001_baseline_vs_ml.md`](experiments/001_baseline_vs_ml.md): Empirical verification that statistical baselines must be beaten.
+- [`002_censoring_recovery.md`](experiments/002_censoring_recovery.md): Two-stage Tobit-inspired latent demand imputation.
+- [`003_stochastic_lead_time.md`](experiments/003_stochastic_lead_time.md): Dual-variance safety stock under supplier delivery shocks.
+
 
 ## Deployment Architecture
 

@@ -18,6 +18,11 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from typing import Any, Callable
+
+from src.features import build_features
+from src.train import predict_with_model
+
 from sklearn.metrics import (
     average_precision_score,
     f1_score,
@@ -261,3 +266,140 @@ def compare_models(
     if primary_metric in df.columns:
         df = df.sort_values(primary_metric).reset_index(drop=True)
     return df
+
+
+def walk_forward_cv(
+    df: pd.DataFrame,
+    model_factory,
+    n_folds: int = 5,
+    test_days: int = 7,
+    actual_col: str = "true_demand",
+    predicted_col: str = "predicted",
+) -> dict[str, Any]:
+    """Rolling-origin walk-forward cross-validation.
+    
+    Splits time series into n_folds by sliding a training window forward.
+    Each fold trains on all data up to a cutoff date and tests on the
+    next test_days days. Returns per-fold and aggregate metrics.
+    
+    Parameters
+    ----------
+    df : DataFrame with 'date' and 'product' columns, plus features.
+    model_factory : callable that returns a fresh model instance (e.g. lambda: GradientBoostModel()).
+    n_folds : number of walk-forward folds.
+    test_days : number of days in each test fold.
+    actual_col : column with ground-truth demand.
+    predicted_col : temporary column name for predictions.
+    
+    Returns
+    -------
+    dict with keys:
+        'per_fold': list of dicts, each with fold_idx, train_end_date, test_start_date, test_end_date, n_train, n_test, mae, rmse, wape, bias
+        'aggregate': dict with mean_mae, mean_rmse, mean_wape, mean_bias, std_mae, std_rmse, std_wape, std_bias
+    """
+    dates = sorted(df["date"].unique())
+    total_dates = len(dates)
+    # Need at least test_days * 2 for train + test
+    max_folds = max(1, (total_dates - test_days) // test_days)
+    n_folds = min(n_folds, max_folds)
+    
+    per_fold = []
+    for fold_idx in range(n_folds):
+        # Test window: slides from end backward
+        test_end_idx = total_dates - fold_idx * test_days
+        test_start_idx = test_end_idx - test_days
+        if test_start_idx <= 0:
+            break
+        
+        test_dates_set = set(dates[test_start_idx:test_end_idx])
+        train_dates_set = set(dates[:test_start_idx])
+        
+        if len(train_dates_set) < 7:  # need minimum training data
+            continue
+        
+        train_df = df[df["date"].isin(train_dates_set)].copy()
+        test_df = df[df["date"].isin(test_dates_set)].copy()
+        
+        if len(test_df) == 0 or actual_col not in test_df.columns:
+            continue
+        
+        model = model_factory()
+        model.fit(train_df)
+        predictions = predict_with_model(model, test_df)
+        
+        actuals = test_df[actual_col].values
+        fold_result = {
+            "fold_idx": fold_idx,
+            "train_end_date": str(dates[test_start_idx - 1]),
+            "test_start_date": str(dates[test_start_idx]),
+            "test_end_date": str(dates[test_end_idx - 1]),
+            "n_train": len(train_df),
+            "n_test": len(test_df),
+            "mae": mae(actuals, predictions),
+            "rmse": rmse(actuals, predictions),
+            "wape": wape(actuals, predictions),
+            "bias": bias(actuals, predictions),
+        }
+        per_fold.append(fold_result)
+    
+    # Aggregate
+    if per_fold:
+        aggregate = {}
+        for metric in ["mae", "rmse", "wape", "bias"]:
+            values = [f[metric] for f in per_fold if not np.isnan(f[metric])]
+            aggregate[f"mean_{metric}"] = float(np.mean(values)) if values else float("nan")
+            aggregate[f"std_{metric}"] = float(np.std(values)) if values else float("nan")
+        aggregate["n_folds"] = len(per_fold)
+    else:
+        aggregate = {"n_folds": 0}
+    
+    return {"per_fold": per_fold, "aggregate": aggregate}
+
+
+def pinball_loss(
+    actual: pd.Series | np.ndarray,
+    predicted_quantile: pd.Series | np.ndarray,
+    alpha: float,
+) -> float:
+    """Pinball (quantile) loss for a given quantile level alpha.
+    
+    For alpha=0.5 this equals 0.5 * MAE (median forecast).
+    For alpha=0.9 it penalises under-prediction 9x more than over-prediction.
+    Lower is better.
+    """
+    actual = np.asarray(actual, dtype=float)
+    predicted_quantile = np.asarray(predicted_quantile, dtype=float)
+    if len(actual) == 0:
+        return float("nan")
+    errors = actual - predicted_quantile
+    loss = np.where(errors >= 0, alpha * errors, (alpha - 1) * errors)
+    return float(np.mean(loss))
+
+
+def interval_coverage(
+    actual: pd.Series | np.ndarray,
+    lower: pd.Series | np.ndarray,
+    upper: pd.Series | np.ndarray,
+) -> dict[str, float]:
+    """Compute empirical coverage and width of prediction intervals.
+    
+    For P10/P90 intervals, expected coverage ≈ 80%.
+    
+    Returns
+    -------
+    dict with:
+        coverage: fraction of actuals within [lower, upper]
+        mean_width: average interval width
+        n: number of observations
+    """
+    actual = np.asarray(actual, dtype=float)
+    lower = np.asarray(lower, dtype=float)
+    upper = np.asarray(upper, dtype=float)
+    if len(actual) == 0:
+        return {"coverage": float("nan"), "mean_width": float("nan"), "n": 0}
+    in_interval = (actual >= lower) & (actual <= upper)
+    return {
+        "coverage": float(np.mean(in_interval)),
+        "mean_width": float(np.mean(upper - lower)),
+        "n": len(actual),
+    }
