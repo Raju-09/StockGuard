@@ -363,3 +363,14 @@ Python 3.11 in a local virtualenv.
 python --version         # 3.11.x
 pip install -e ".[dev]"  # installs all deps + dev tools
 ```
+
+
+## 🛠️ CLI Inventory Audit Tool
+
+Run rapid command-line audits for safety stock and reorder points:
+
+```bash
+python scripts/audit_cli.py --demand 120 --lead-time 5 --service-level 0.95
+```
+
+See [docs/architecture.md](docs/architecture.md) for full architectural documentation.
